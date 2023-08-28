@@ -13,4 +13,4 @@ if __name__ == "__main__":
 
     data.loc[train_idx, "type"] = "train"
     data.loc[valid_idx, "type"] = "valid"
-    data.to_csv("data/train.csv")
+    data.to_csv("data/train.csv", index=False)
