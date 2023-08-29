@@ -7,10 +7,8 @@ from torchmetrics.classification.accuracy import Accuracy
 from transformers import AutoTokenizer
 from torch.nn.utils.rnn import pad_sequence
 
-from CoCa_pytorch.pycocoevalcap.bleu import bleu
-from CoCa_pytorch.pycocoevalcap.ciderD import ciderD
-from CoCa_pytorch.pycocoevalcap.meteor import meteor
-from CoCa_pytorch.pycocoevalcap.rouge import rouge
+from torchmetrics.text import BLEUScore
+from torchmetrics.text.rouge import ROUGEScore
 
 
 class CocaModule(LightningModule):
@@ -29,12 +27,23 @@ class CocaModule(LightningModule):
         self.net = net
         self.tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
 
+        self.train_loss = MeanMetric()
+        self.cider = None
+        self.meteor = None
+        self.bleu4 = BLEUScore(n_gram=4)
+        self.bleu3 = BLEUScore(n_gram=3)
+        self.rouge = ROUGEScore(rouge_keys="rougeL")
+
+        self.score_best = MaxMetric()
+
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        text, images = x
-        return self.net(text, images, return_loss=True)
+        pass
 
     def on_train_start(self) -> None:
-        pass
+        self.bleu4.reset()
+        self.bleu3.reset()
+        self.rouge.reset()
+        self.score_best.reset()
 
     def model_step(
         self, batch: Tuple[torch.Tensor, torch.Tensor]
@@ -43,14 +52,17 @@ class CocaModule(LightningModule):
         text = pad_sequence(
             map(torch.tensor, self.tokenizer(text)["input_ids"]), batch_first=True
         ).to(self.device)
-        loss = self.forward((text, img))
-        return loss
+        return img, mos, text
 
     def training_step(
         self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int
     ) -> torch.Tensor:
-        loss = self.model_step(batch)
-
+        img, mos, text = self.model_step(batch)
+        loss = self.net(text, img, return_loss=True)
+        self.train_loss(loss)
+        self.log(
+            "train/loss", self.train_loss, on_step=False, on_epoch=True, prog_bar=True
+        )
         return loss
 
     def on_train_epoch_end(self) -> None:
@@ -66,10 +78,38 @@ class CocaModule(LightningModule):
             labels.
         :param batch_idx: The index of the current batch.
         """
-        loss = self.model_step(batch)
+        img, mos, text = self.model_step(batch)
+        logits = self.net(text=text, images=img)
+        predict = self.tokenizer.batch_decode(logits.argmax(-1))
+
+        self.bleu3(predict, [batch["text"]])
+        self.bleu4(predict, [batch["text"]])
+        self.rouge(predict, [batch["text"]])
+
+        self.log_dict(
+            {
+                "val/bleu3": self.bleu3,
+                "val/bleu4": self.bleu4,
+                "val/rouge": self.rouge.rougeL_fmeasure[-1],
+            },
+            on_step=False,
+            on_epoch=True,
+            prog_bar=True,
+        )
 
     def on_validation_epoch_end(self) -> None:
-        pass
+        bleu3 = self.bleu3.compute()
+        bleu4 = self.bleu4.compute()
+        rouge = self.rouge.compute()
+
+        # Score = CIDEr-D * 4 + METEOR * 3 + ((BLEU-4 + BLEU-3) / 2) * 2 + ROUGE-L * 1
+        score = ((bleu3 + bleu4) / 2) + rouge["rougeL_fmeasure"]
+        self.score_best(score)
+        self.log_dict(
+            {"val/score": score, "val/best_score": self.score_best.compute()},
+            sync_dist=True,
+            prog_bar=True,
+        )
 
     def test_step(
         self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int
@@ -97,7 +137,7 @@ class CocaModule(LightningModule):
                 "optimizer": optimizer,
                 "lr_scheduler": {
                     "scheduler": scheduler,
-                    "monitor": "val/loss",
+                    "monitor": "val/score",
                     "interval": "epoch",
                     "frequency": 1,
                 },
