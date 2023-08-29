@@ -8,9 +8,9 @@ from albumentations.pytorch import ToTensorV2
 
 
 class CocaDataset(Dataset):
-    def __init__(self, data_dir, data_type, *trs):
+    def __init__(self, data_dir, data_type, trs):
         self.data_dir = data_dir
-        self.transform = A.Compose(list(*trs), p=0.5)
+        self.transform = trs
 
         csv_path = os.path.join(data_dir, "train.csv")
         data = pd.read_csv(csv_path)
@@ -27,7 +27,16 @@ class CocaDataset(Dataset):
         return {"img": img, "mos": mos, "text": comments}
 
 
+def trs_train():
+    trs = [A.HorizontalFlip(), ToTensorV2()]
+    return A.Compose([A.Resize(256, 256), A.Normalize()] + trs, p=1)
+
+
+def trs_valid():
+    trs = [ToTensorV2()]
+    return A.Compose([A.Resize(256, 256), A.Normalize()] + trs, p=1)
+
+
 if __name__ == "__main__":
-    trs = [A.HorizontalFlip(p=0.5), ToTensorV2()]
-    dataset = CocaDataset("data", "train", trs)
+    dataset = CocaDataset("data", "train", trs_train())
     dataset[2]

@@ -2,14 +2,18 @@ import torch
 from torch import einsum, nn
 import torch.nn.functional as F
 from einops import rearrange, repeat
+from CoCa_pytorch.coca_pytorch.image_encoder import Img_encoder_dict
 
 # helper functions
+
 
 def exists(val):
     return val is not None
 
+
 def default(val, d):
     return val if exists(val) else d
+
 
 # normalization
 # they use layernorm without bias, something that pytorch does not offer
@@ -24,6 +28,7 @@ class LayerNorm(nn.Module):
     def forward(self, x):
         return F.layer_norm(x, x.shape[-1:], self.gamma, self.beta)
 
+
 # residual
 
 
@@ -34,6 +39,7 @@ class Residual(nn.Module):
 
     def forward(self, x, *args, **kwargs):
         return self.fn(x, *args, **kwargs) + x
+
 
 # to latents
 
@@ -46,6 +52,7 @@ class EmbedToLatents(nn.Module):
     def forward(self, x):
         latents = self.to_latents(x)
         return F.normalize(latents, dim=-1)
+
 
 # rotary positional embedding
 # https://arxiv.org/abs/2104.09864
@@ -103,10 +110,7 @@ class ParallelTransformerBlock(nn.Module):
         self.fused_attn_ff_proj = nn.Linear(dim, sum(self.fused_dims), bias=False)
         self.attn_out = nn.Linear(attn_inner_dim, dim, bias=False)
 
-        self.ff_out = nn.Sequential(
-            SwiGLU(),
-            nn.Linear(ff_inner_dim, dim, bias=False)
-        )
+        self.ff_out = nn.Sequential(SwiGLU(), nn.Linear(ff_inner_dim, dim, bias=False))
 
         # for caching causal mask and rotary embeddings
 
@@ -176,7 +180,7 @@ class ParallelTransformerBlock(nn.Module):
         # extra attention mask - for masking out attention from text CLS token to padding
 
         if exists(attn_mask):
-            attn_mask = rearrange(attn_mask, 'b i j -> b 1 i j')
+            attn_mask = rearrange(attn_mask, "b i j -> b 1 i j")
             sim = sim.masked_fill(~attn_mask, -torch.finfo(sim.dtype).max)
 
         # attention
@@ -193,7 +197,9 @@ class ParallelTransformerBlock(nn.Module):
         out = rearrange(out, "b h n d -> b n (h d)")
         return self.attn_out(out) + self.ff_out(ff)
 
+
 # cross attention - using multi-query + one-headed key / values as in PaLM w/ optional parallel feedforward
+
 
 class CrossAttention(nn.Module):
     def __init__(
@@ -209,7 +215,7 @@ class CrossAttention(nn.Module):
     ):
         super().__init__()
         self.heads = heads
-        self.scale = dim_head ** -0.5
+        self.scale = dim_head**-0.5
         inner_dim = heads * dim_head
         context_dim = default(context_dim, dim)
 
@@ -224,11 +230,15 @@ class CrossAttention(nn.Module):
 
         ff_inner_dim = ff_mult * dim
 
-        self.ff = nn.Sequential(
-            nn.Linear(dim, ff_inner_dim * 2, bias=False),
-            SwiGLU(),
-            nn.Linear(ff_inner_dim, dim, bias=False)
-        ) if parallel_ff else None
+        self.ff = (
+            nn.Sequential(
+                nn.Linear(dim, ff_inner_dim * 2, bias=False),
+                SwiGLU(),
+                nn.Linear(ff_inner_dim, dim, bias=False),
+            )
+            if parallel_ff
+            else None
+        )
 
     def forward(self, x, context):
         """
@@ -247,7 +257,7 @@ class CrossAttention(nn.Module):
         # get queries
 
         q = self.to_q(x)
-        q = rearrange(q, 'b n (h d) -> b h n d', h = self.heads)
+        q = rearrange(q, "b n (h d) -> b h n d", h=self.heads)
 
         # scale
 
@@ -259,7 +269,7 @@ class CrossAttention(nn.Module):
 
         # query / key similarity
 
-        sim = einsum('b h i d, b j d -> b h i j', q, k)
+        sim = einsum("b h i d, b j d -> b h i j", q, k)
 
         # attention
 
@@ -268,11 +278,11 @@ class CrossAttention(nn.Module):
 
         # aggregate
 
-        out = einsum('b h i j, b j d -> b h i d', attn, v)
+        out = einsum("b h i j, b j d -> b h i d", attn, v)
 
         # merge and combine heads
 
-        out = rearrange(out, 'b h n d -> b n (h d)')
+        out = rearrange(out, "b h n d -> b n (h d)")
         out = self.to_out(out)
 
         # add parallel feedforward (for multimodal layers)
@@ -281,6 +291,7 @@ class CrossAttention(nn.Module):
             out = out + self.ff(x)
 
         return out
+
 
 # transformer
 
@@ -293,15 +304,15 @@ class CoCa(nn.Module):
         num_tokens,
         unimodal_depth,
         multimodal_depth,
-        dim_latents = None,
-        image_dim = None,
+        dim_latents=None,
+        image_dim=None,
         num_img_queries=256,
         dim_head=64,
         heads=8,
         ff_mult=4,
         img_encoder=None,
-        caption_loss_weight=1.,
-        contrastive_loss_weight=1.,
+        caption_loss_weight=1.0,
+        contrastive_loss_weight=1.0,
         pad_id=0
     ):
         super().__init__()
@@ -312,18 +323,25 @@ class CoCa(nn.Module):
         self.contrastive_loss_weight = contrastive_loss_weight
 
         # token embeddings
-
         self.token_emb = nn.Embedding(num_tokens, dim)
         self.text_cls_token = nn.Parameter(torch.randn(dim))
 
         # image encoder
 
-        self.img_encoder = img_encoder
+        self.img_encoder = Img_encoder_dict[img_encoder]
 
         # attention pooling for image tokens
 
-        self.img_queries = nn.Parameter(torch.randn(num_img_queries + 1, dim)) # num image queries for multimodal, but 1 extra CLS for contrastive learning
-        self.img_attn_pool = CrossAttention(dim=dim, context_dim=image_dim, dim_head=dim_head, heads=heads, norm_context=True)
+        self.img_queries = nn.Parameter(
+            torch.randn(num_img_queries + 1, dim)
+        )  # num image queries for multimodal, but 1 extra CLS for contrastive learning
+        self.img_attn_pool = CrossAttention(
+            dim=dim,
+            context_dim=image_dim,
+            dim_head=dim_head,
+            heads=heads,
+            norm_context=True,
+        )
 
         self.img_attn_pool_norm = LayerNorm(dim)
         self.text_cls_norm = LayerNorm(dim)
@@ -336,36 +354,55 @@ class CoCa(nn.Module):
 
         # contrastive learning temperature
 
-        self.temperature = nn.Parameter(torch.Tensor([1.]))
+        self.temperature = nn.Parameter(torch.Tensor([1.0]))
 
         # unimodal layers
 
         self.unimodal_layers = nn.ModuleList([])
         for ind in range(unimodal_depth):
             self.unimodal_layers.append(
-                Residual(ParallelTransformerBlock(dim=dim, dim_head=dim_head, heads=heads, ff_mult=ff_mult)),
+                Residual(
+                    ParallelTransformerBlock(
+                        dim=dim, dim_head=dim_head, heads=heads, ff_mult=ff_mult
+                    )
+                ),
             )
 
         # multimodal layers
 
         self.multimodal_layers = nn.ModuleList([])
         for ind in range(multimodal_depth):
-            self.multimodal_layers.append(nn.ModuleList([
-                Residual(ParallelTransformerBlock(dim=dim, dim_head=dim_head, heads=heads, ff_mult=ff_mult)),
-                Residual(CrossAttention(dim=dim, dim_head=dim_head, heads=heads, parallel_ff=True, ff_mult=ff_mult))
-            ]))
+            self.multimodal_layers.append(
+                nn.ModuleList(
+                    [
+                        Residual(
+                            ParallelTransformerBlock(
+                                dim=dim, dim_head=dim_head, heads=heads, ff_mult=ff_mult
+                            )
+                        ),
+                        Residual(
+                            CrossAttention(
+                                dim=dim,
+                                dim_head=dim_head,
+                                heads=heads,
+                                parallel_ff=True,
+                                ff_mult=ff_mult,
+                            )
+                        ),
+                    ]
+                )
+            )
 
         # to logits
 
         self.to_logits = nn.Sequential(
-            LayerNorm(dim),
-            nn.Linear(dim, num_tokens, bias=False)
+            LayerNorm(dim), nn.Linear(dim, num_tokens, bias=False)
         )
 
         # they used embedding weight tied projection out to logits, not common, but works
         self.to_logits[-1].weight = self.token_emb.weight
         nn.init.normal_(self.token_emb.weight, std=0.02)
-    
+
     def embed_text(self, text):
         batch, device = text.shape[0], text.device
 
@@ -375,13 +412,13 @@ class CoCa(nn.Module):
 
         # append text cls tokens
 
-        text_cls_tokens = repeat(self.text_cls_token, 'd -> b 1 d', b=batch)
+        text_cls_tokens = repeat(self.text_cls_token, "d -> b 1 d", b=batch)
         text_tokens = torch.cat((text_tokens, text_cls_tokens), dim=-2)
 
         # create specific mask for text cls token at the end
         # to prevent it from attending to padding
 
-        cls_mask = rearrange(text!=self.pad_id, 'b j -> b 1 j')
+        cls_mask = rearrange(text != self.pad_id, "b j -> b 1 j")
         attn_mask = F.pad(cls_mask, (0, 1, seq, 0), value=True)
 
         # go through unimodal layers
@@ -403,12 +440,14 @@ class CoCa(nn.Module):
         assert not (exists(images) and exists(image_tokens))
 
         if exists(images):
-            assert exists(self.img_encoder), 'img_encoder must be passed in for automatic image encoding'
+            assert exists(
+                self.img_encoder
+            ), "img_encoder must be passed in for automatic image encoding"
             image_tokens = self.img_encoder(images)
 
         # attention pool image tokens
 
-        img_queries = repeat(self.img_queries, 'n d -> b n d', b=image_tokens.shape[0])
+        img_queries = repeat(self.img_queries, "n d -> b n d", b=image_tokens.shape[0])
         img_queries = self.img_attn_pool(img_queries, image_tokens)
         img_queries = self.img_attn_pool_norm(img_queries)
 
@@ -421,7 +460,7 @@ class CoCa(nn.Module):
         image_tokens=None,
         labels=None,
         return_loss=False,
-        return_embeddings=False
+        return_embeddings=False,
     ):
         batch, device = text.shape[0], text.device
 
@@ -430,7 +469,9 @@ class CoCa(nn.Module):
 
         text_embeds, text_tokens = self.embed_text(text)
 
-        image_embeds, image_tokens = self.embed_image(images=images, image_tokens=image_tokens)
+        image_embeds, image_tokens = self.embed_image(
+            images=images, image_tokens=image_tokens
+        )
 
         # return embeddings if that is what the researcher wants
 
@@ -454,7 +495,7 @@ class CoCa(nn.Module):
 
         # calculate caption loss (cross entropy loss)
 
-        logits = rearrange(logits, 'b n c -> b c n')
+        logits = rearrange(logits, "b n c -> b c n")
         caption_loss = ce(logits, labels, ignore_index=self.pad_id)
         caption_loss = caption_loss * self.caption_loss_weight
 
@@ -465,11 +506,13 @@ class CoCa(nn.Module):
 
         # calculate contrastive loss
 
-        sim = einsum('i d, j d -> i j', text_latents, image_latents)
+        sim = einsum("i d, j d -> i j", text_latents, image_latents)
         sim = sim * self.temperature.exp()
         contrastive_labels = torch.arange(batch, device=device)
 
-        contrastive_loss = (ce(sim, contrastive_labels) + ce(sim.t(), contrastive_labels)) * 0.5
+        contrastive_loss = (
+            ce(sim, contrastive_labels) + ce(sim.t(), contrastive_labels)
+        ) * 0.5
         contrastive_loss = contrastive_loss * self.contrastive_loss_weight
 
         return caption_loss + contrastive_loss
