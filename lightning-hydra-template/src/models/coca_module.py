@@ -7,6 +7,11 @@ from torchmetrics.classification.accuracy import Accuracy
 from transformers import AutoTokenizer
 from torch.nn.utils.rnn import pad_sequence
 
+from CoCa_pytorch.pycocoevalcap.bleu import bleu
+from CoCa_pytorch.pycocoevalcap.ciderD import ciderD
+from CoCa_pytorch.pycocoevalcap.meteor import meteor
+from CoCa_pytorch.pycocoevalcap.rouge import rouge
+
 
 class CocaModule(LightningModule):
     def __init__(
