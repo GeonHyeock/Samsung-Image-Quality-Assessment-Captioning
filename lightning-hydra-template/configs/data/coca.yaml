@@ -1,0 +1,5 @@
+_target_: src.data.coca_datamodule.CocaDataModule
+data_dir: ${paths.data_dir}
+batch_size: 5
+num_workers: 0
+pin_memory: False
