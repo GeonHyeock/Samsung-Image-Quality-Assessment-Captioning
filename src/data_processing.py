@@ -14,3 +14,4 @@ if __name__ == "__main__":
     data.loc[train_idx, "type"] = "train"
     data.loc[valid_idx, "type"] = "valid"
     data.to_csv("data/train.csv", index=False)
+    data.sample(5000).to_csv("data/pipe_test.csv", index=False)
