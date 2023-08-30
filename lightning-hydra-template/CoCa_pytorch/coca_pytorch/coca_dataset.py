@@ -11,8 +11,9 @@ class CocaDataset(Dataset):
     def __init__(self, data_dir, data_type, trs):
         self.data_dir = data_dir
         self.transform = trs
+        self.data_type = data_type
 
-        csv_path = os.path.join(data_dir, "train.csv")
+        csv_path = os.path.join(data_dir, "pipe_test.csv")
         data = pd.read_csv(csv_path)
         self.data = data[data["type"] == data_type].reset_index(drop=True)
 
@@ -24,19 +25,22 @@ class CocaDataset(Dataset):
         img = cv2.imread(os.path.join(self.data_dir, img_path))
         img = self.transform(image=img)["image"]
 
+        if self.data_type == "valid":
+            comments = list(self.data[self.data.img_path == img_path].comments)
+
         return {"img": img, "mos": mos, "text": comments}
 
 
 def trs_train():
     trs = [A.HorizontalFlip(), ToTensorV2()]
-    return A.Compose([A.Resize(256, 256), A.Normalize()] + trs, p=1)
+    return A.Compose([A.Resize(320, 320), A.Normalize()] + trs, p=1)
 
 
 def trs_valid():
     trs = [ToTensorV2()]
-    return A.Compose([A.Resize(256, 256), A.Normalize()] + trs, p=1)
+    return A.Compose([A.Resize(320, 320), A.Normalize()] + trs, p=1)
 
 
 if __name__ == "__main__":
-    dataset = CocaDataset("data", "train", trs_train())
+    dataset = CocaDataset("data", "valid", trs_train())
     dataset[2]

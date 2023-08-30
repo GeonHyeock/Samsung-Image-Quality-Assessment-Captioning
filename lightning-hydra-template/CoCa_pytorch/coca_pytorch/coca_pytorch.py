@@ -2,7 +2,7 @@ import torch
 from torch import einsum, nn
 import torch.nn.functional as F
 from einops import rearrange, repeat
-from CoCa_pytorch.coca_pytorch.image_encoder import Img_encoder_dict
+from CoCa_pytorch.coca_pytorch.pretrain import Pretrained
 
 # helper functions
 
@@ -323,12 +323,13 @@ class CoCa(nn.Module):
         self.contrastive_loss_weight = contrastive_loss_weight
 
         # token embeddings
+        self.tokenizer = Pretrained["tokenizer"]
         self.token_emb = nn.Embedding(num_tokens, dim)
         self.text_cls_token = nn.Parameter(torch.randn(dim))
 
         # image encoder
 
-        self.img_encoder = Img_encoder_dict[img_encoder]
+        self.img_encoder = Pretrained[img_encoder]
 
         # attention pooling for image tokens
 
