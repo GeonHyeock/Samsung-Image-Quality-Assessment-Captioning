@@ -515,4 +515,4 @@ class CoCa(nn.Module):
         ) * 0.5
         contrastive_loss = contrastive_loss * self.contrastive_loss_weight
 
-        return caption_loss + contrastive_loss
+        return caption_loss, contrastive_loss
