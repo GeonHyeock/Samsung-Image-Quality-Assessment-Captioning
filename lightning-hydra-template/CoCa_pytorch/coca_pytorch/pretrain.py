@@ -1,6 +1,7 @@
 from vit_pytorch.simple_vit_with_patch_dropout import SimpleViT
 from vit_pytorch.extractor import Extractor
 
+
 vit = SimpleViT(
     image_size=256,
     patch_size=32,
@@ -14,4 +15,9 @@ vit = SimpleViT(
 
 vit = Extractor(vit, return_embeddings_only=True, detach=False)
 
-Img_encoder_dict = {"vit": vit}
+model, _ = clip.load("ViT-B/32", device="cuda")
+
+
+Pretrained = {
+    "vit": vit,
+}
