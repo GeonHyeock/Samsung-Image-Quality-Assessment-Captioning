@@ -1,6 +1,6 @@
 from vit_pytorch.simple_vit_with_patch_dropout import SimpleViT
 from vit_pytorch.extractor import Extractor
-
+from transformers import AutoTokenizer
 
 vit = SimpleViT(
     image_size=256,
@@ -15,9 +15,8 @@ vit = SimpleViT(
 
 vit = Extractor(vit, return_embeddings_only=True, detach=False)
 
-model, _ = clip.load("ViT-B/32", device="cuda")
-
 
 Pretrained = {
     "vit": vit,
+    "tokenizer": AutoTokenizer.from_pretrained("bert-base-uncased"),
 }
