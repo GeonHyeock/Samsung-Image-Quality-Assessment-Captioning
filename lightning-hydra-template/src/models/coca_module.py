@@ -5,8 +5,6 @@ from lightning import LightningModule
 from torchmetrics import MaxMetric, MeanMetric
 from torchmetrics.text import BLEUScore
 from torchmetrics.text.rouge import ROUGEScore
-
-from transformers import AutoTokenizer
 from torch.nn.utils.rnn import pad_sequence
 
 
@@ -24,7 +22,6 @@ class CocaModule(LightningModule):
         self.save_hyperparameters(logger=False)
 
         self.net = net
-        self.tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
 
         self.train_loss = MeanMetric()
         self.cap_loss = MeanMetric()
@@ -47,14 +44,12 @@ class CocaModule(LightningModule):
         self.rouge.reset()
         self.score_best.reset()
 
-    def model_step(
-        self, batch: Tuple[torch.Tensor, torch.Tensor]
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        img, text = batch["img"], batch["text"]
+    def model_step(self, batch):
         text = pad_sequence(
-            map(torch.tensor, self.tokenizer(text)["input_ids"]), batch_first=True
+            map(torch.tensor, self.net.tokenizer(batch["text"])["input_ids"]),
+            batch_first=True,
         ).to(self.device)
-        return img, text
+        return batch["img"], text
 
     def training_step(
         self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int
@@ -75,7 +70,7 @@ class CocaModule(LightningModule):
             on_step=False,
             on_epoch=True,
             prog_bar=True,
-            # batch
+            batch_size=img.size()[0],
         )
         return loss
 
@@ -94,7 +89,7 @@ class CocaModule(LightningModule):
         """
         img, text = self.model_step(batch)
         logits = self.net(text=text, images=img)
-        predict = self.tokenizer.batch_decode(logits.argmax(-1))
+        predict = self.net.tokenizer.batch_decode(logits.argmax(-1))
         target = [[i] for i in batch["text"]]
 
         self.bleu3(predict, target)
@@ -110,6 +105,7 @@ class CocaModule(LightningModule):
             on_step=False,
             on_epoch=True,
             prog_bar=True,
+            batch_size=img.size()[0],
         )
 
     def on_validation_epoch_end(self) -> None:
@@ -118,7 +114,7 @@ class CocaModule(LightningModule):
         rouge = self.rouge.compute()
 
         # Score = CIDEr-D * 4 + METEOR * 3 + ((BLEU-4 + BLEU-3) / 2) * 2 + ROUGE-L * 1
-        score = ((bleu3 + bleu4) / 2) + rouge["rougeL_fmeasure"]
+        score = bleu3 + bleu4 + rouge["rougeL_fmeasure"]
         self.score_best(score)
         self.log_dict(
             {"val/score": score, "val/best_score": self.score_best.compute()},
