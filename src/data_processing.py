@@ -6,12 +6,13 @@ if __name__ == "__main__":
     np.random.seed(42)
 
     data = pd.read_csv("data/train.csv")
+    train_img = np.random.choice(data.img_name.unique(), int(len(data) * 0.9))
+    train_idx = np.where(np.isin(data.img_name, train_img) == True)[0]
+    valid_idx = np.array(list(set(range(len(data))) - set(train_idx)))
+    print(f"train : {len(train_idx)} valid : {len(valid_idx)}")
+    print(f"ratio = {len(train_idx) / len(data)}")
+
     data["type"] = pd.Series()
-
-    idx = np.array(data.index.array)
-    train_idx, valid_idx = train_test_split(idx, test_size=0.5, random_state=42)
-
     data.loc[train_idx, "type"] = "train"
     data.loc[valid_idx, "type"] = "valid"
     data.to_csv("data/train.csv", index=False)
-    data.sample(5000).to_csv("data/pipe_test.csv", index=False)
