@@ -3,12 +3,11 @@ from typing import Any, Dict, Tuple
 import torch
 from lightning import LightningModule
 from torchmetrics import MaxMetric, MeanMetric
-from torchmetrics.classification.accuracy import Accuracy
-from transformers import AutoTokenizer
-from torch.nn.utils.rnn import pad_sequence
-
 from torchmetrics.text import BLEUScore
 from torchmetrics.text.rouge import ROUGEScore
+
+from transformers import AutoTokenizer
+from torch.nn.utils.rnn import pad_sequence
 
 
 class CocaModule(LightningModule):
@@ -28,6 +27,9 @@ class CocaModule(LightningModule):
         self.tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
 
         self.train_loss = MeanMetric()
+        self.cap_loss = MeanMetric()
+        self.con_loss = MeanMetric()
+
         self.cider = None
         self.meteor = None
         self.bleu4 = BLEUScore(n_gram=4)
@@ -48,20 +50,32 @@ class CocaModule(LightningModule):
     def model_step(
         self, batch: Tuple[torch.Tensor, torch.Tensor]
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        img, mos, text = batch["img"], batch["mos"], batch["text"]
+        img, text = batch["img"], batch["text"]
         text = pad_sequence(
             map(torch.tensor, self.tokenizer(text)["input_ids"]), batch_first=True
         ).to(self.device)
-        return img, mos, text
+        return img, text
 
     def training_step(
         self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int
     ) -> torch.Tensor:
-        img, mos, text = self.model_step(batch)
-        loss = self.net(text, img, return_loss=True)
+        img, text = self.model_step(batch)
+        caption_loss, contrastive_loss = self.net(text, img, return_loss=True)
+        loss = caption_loss + contrastive_loss
+
         self.train_loss(loss)
-        self.log(
-            "train/loss", self.train_loss, on_step=False, on_epoch=True, prog_bar=True
+        self.cap_loss(caption_loss)
+        self.con_loss(contrastive_loss)
+        self.log_dict(
+            {
+                "train/loss": self.train_loss,
+                "train/caption_loss": self.cap_loss,
+                "train/contrastive_loss": self.con_loss,
+            },
+            on_step=False,
+            on_epoch=True,
+            prog_bar=True,
+            # batch
         )
         return loss
 
@@ -78,13 +92,14 @@ class CocaModule(LightningModule):
             labels.
         :param batch_idx: The index of the current batch.
         """
-        img, mos, text = self.model_step(batch)
+        img, text = self.model_step(batch)
         logits = self.net(text=text, images=img)
         predict = self.tokenizer.batch_decode(logits.argmax(-1))
+        target = [[i] for i in batch["text"]]
 
-        self.bleu3(predict, [batch["text"]])
-        self.bleu4(predict, [batch["text"]])
-        self.rouge(predict, [batch["text"]])
+        self.bleu3(predict, target)
+        self.bleu4(predict, target)
+        self.rouge(predict, target)
 
         self.log_dict(
             {
