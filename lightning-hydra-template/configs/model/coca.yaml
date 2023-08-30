@@ -18,10 +18,10 @@ net:
   dim: 512                                                              # model dimension
   img_encoder: vit                                                      # vision transformer - image encoder, returning image embeddings as (batch, seq, dim)
   image_dim: 1024                                                       # image embedding dimension, if not the same as model dimensions
-  num_tokens: 30522                                                     # number of text tokens
+  num_tokens: 49408                                                     # number of text tokens
   unimodal_depth: 6                                                     # depth of the unimodal transformer
   multimodal_depth: 6                                                   # depth of the multimodal transformer
   dim_head: 64                                                          # dimension per attention head
   heads: 8                                                              # number of attention heads
-  caption_loss_weight: 1.                                               # weight on the autoregressive caption loss
+  caption_loss_weight: 2.                                               # weight on the autoregressive caption loss
   contrastive_loss_weight: 1.                                           # weight on the contrastive loss between image and te
