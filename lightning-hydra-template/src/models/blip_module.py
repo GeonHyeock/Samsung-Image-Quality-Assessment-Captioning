@@ -6,7 +6,8 @@ from torchmetrics import MaxMetric, MeanMetric
 from torchmetrics.text import BLEUScore
 from torchmetrics.text.rouge import ROUGEScore
 
-
+from PIL import Image
+import os
 
 class BlipModule(LightningModule):
     def __init__(
@@ -42,16 +43,30 @@ class BlipModule(LightningModule):
         pass
 
     def on_train_start(self) -> None:
+        self.net.train()
         self.bleu4.reset()
         self.bleu3.reset()
         self.rouge.reset()
         self.score_best.reset()
 
     def model_step(self, batch):
-        pass
+        img = [Image.open(os.path.join(i)) for i in batch["img"]]
+        text = batch["text"]
+
+        encoding = self.processor(
+            images=img,
+            text=text,
+            padding="longest",
+            return_tensors="pt",
+        )
+        # remove batch dimension
+        encoding = {k: v.to(self.device) for k, v in encoding.items()}
+        encoding.update({"img_name" : batch["img_name"]})
+        return encoding
         
 
     def training_step(self, batch):
+        batch = self.model_step(batch)
         input_ids = batch.pop("input_ids")
         pixel_values = batch.pop("pixel_values")
         attention_mask = batch.pop("attention_mask")
@@ -64,9 +79,10 @@ class BlipModule(LightningModule):
         self.log_dict(
             {
                 "train/loss": self.train_loss,
+                "train/lr" : self.trainer.optimizers[0].param_groups[0]["lr"]
             },
-            on_step=False,
-            on_epoch=True,
+            on_step=True,
+            on_epoch=False,
             prog_bar=True,
             batch_size=len(input_ids),
         )
@@ -85,7 +101,8 @@ class BlipModule(LightningModule):
             labels.
         :param batch_idx: The index of the current batch.
         """
-        predict = batch["pixel_values"]
+        batch = self.model_step(batch)
+        predict = batch.pop("pixel_values")
         predict = self.net.generate(pixel_values=predict, max_length=50)
         predict = self.processor.batch_decode(predict, skip_special_tokens=True)
         target = list(map(lambda x: self.comments_dict[x], batch["img_name"]))
@@ -147,7 +164,7 @@ class BlipModule(LightningModule):
                 "lr_scheduler": {
                     "scheduler": scheduler,
                     "monitor": "val/score",
-                    "interval": "epoch",
+                    "interval": "step",
                     "frequency": 1,
                 },
             }
