@@ -3,15 +3,18 @@ _target_: src.models.blip_module.BlipModule
 optimizer:
   _target_: torch.optim.Adam
   _partial_: true
-  lr: 0.001
+  lr: 0.000001
   weight_decay: 0.0
 
 scheduler:
-  _target_: torch.optim.lr_scheduler.ReduceLROnPlateau
+  _target_: cosine_annealing_warmup.CosineAnnealingWarmupRestarts
   _partial_: true
-  mode: min
-  factor: 0.1
-  patience: 50
+  first_cycle_steps: 3e+5
+  cycle_mult: 1.0
+  max_lr: 1e-5
+  min_lr: 1e-10
+  warmup_steps: 1e+5
+  gamma: 0.5
 
 net:
   _target_: Blip.model.model
