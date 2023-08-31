@@ -15,6 +15,7 @@ class BlipDataModule(LightningDataModule):
         batch_size: int = 64,
         num_workers: int = 0,
         pin_memory: bool = False,
+        persistent_workers = False,
     ) -> None:
         super().__init__()
 
@@ -40,6 +41,7 @@ class BlipDataModule(LightningDataModule):
             num_workers=self.hparams.num_workers,
             pin_memory=self.hparams.pin_memory,
             shuffle=True,
+            persistent_workers=self.hparams.persistent_workers,
         )
 
     def val_dataloader(self) -> DataLoader[Any]:
@@ -53,6 +55,7 @@ class BlipDataModule(LightningDataModule):
             num_workers=self.hparams.num_workers,
             pin_memory=self.hparams.pin_memory,
             shuffle=False,
+            persistent_workers=self.hparams.persistent_workers
         )
 
     def test_dataloader(self) -> DataLoader[Any]:

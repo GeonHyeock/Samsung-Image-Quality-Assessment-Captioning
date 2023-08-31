@@ -85,6 +85,7 @@ class BlipModule(LightningModule):
             on_epoch=False,
             prog_bar=True,
             batch_size=len(input_ids),
+            sync_dist=True
         )
         return loss
 
@@ -121,6 +122,7 @@ class BlipModule(LightningModule):
             on_epoch=True,
             prog_bar=True,
             batch_size=len(predict),
+            sync_dist=True
         )
 
     def on_validation_epoch_end(self) -> None:
