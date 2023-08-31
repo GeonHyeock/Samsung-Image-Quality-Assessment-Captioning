@@ -1,5 +1,5 @@
 from typing import Any, Dict, Tuple
-
+import json
 import torch
 from lightning import LightningModule
 from torchmetrics import MaxMetric, MeanMetric
@@ -22,6 +22,10 @@ class CocaModule(LightningModule):
         self.save_hyperparameters(logger=False)
 
         self.net = net
+        self.cls_token = torch.tensor(self.net.tokenizer("").input_ids[0])
+
+        with open("../data/comments_dict.json", "r") as f:
+            self.comments_dict = json.load(f)
 
         self.train_loss = MeanMetric()
         self.cap_loss = MeanMetric()
@@ -87,10 +91,11 @@ class CocaModule(LightningModule):
             labels.
         :param batch_idx: The index of the current batch.
         """
-        img, text = self.model_step(batch)
+        img = batch["img"]
+        text = self.cls_token.repeat(img.shape[0], 1).to(self.device)
         logits = self.net(text=text, images=img)
         predict = self.net.tokenizer.batch_decode(logits.argmax(-1))
-        target = [[i] for i in batch["text"]]
+        target = list(map(lambda x: self.comments_dict[x], batch["text"]))
 
         self.bleu3(predict, target)
         self.bleu4(predict, target)

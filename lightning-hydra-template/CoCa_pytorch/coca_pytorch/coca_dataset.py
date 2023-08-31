@@ -21,12 +21,12 @@ class CocaDataset(Dataset):
         return len(self.data)
 
     def __getitem__(self, idx):
-        _, img_path, mos, comments, _ = self.data.iloc[idx]
+        img_name, img_path, mos, comments, _ = self.data.iloc[idx]
         img = cv2.imread(os.path.join(self.data_dir, img_path))
         img = self.transform(image=img)["image"]
 
         if self.data_type == "valid":
-            comments = list(self.data[self.data.img_path == img_path].comments)
+            comments = img_name
 
         return {"img": img, "mos": mos, "text": comments}
 
