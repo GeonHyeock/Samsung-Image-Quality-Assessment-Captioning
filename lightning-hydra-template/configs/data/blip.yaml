@@ -1,0 +1,6 @@
+_target_: src.data.blip_datamodule.BlipDataModule
+data_dir: ${paths.data_dir}
+processor: "Salesforce/blip-image-captioning-base"
+batch_size: 10
+num_workers: 0
+pin_memory: False
