@@ -10,25 +10,15 @@ class ImageCaptioningDataset(Dataset):
         self.type = data_type
         self.processor = AutoProcessor.from_pretrained(processor)
 
-        csv_path = os.path.join(data, "pipe_test.csv")
+        csv_path = os.path.join(data, "train.csv")
         data = pd.read_csv(csv_path)
         self.data = data[data["type"] == data_type].reset_index(drop=True)
-        
 
     def __len__(self):
         return len(self.data)
 
     def __getitem__(self, idx):
-        img_name ,img_path,_,comments,type = self.data.iloc[idx]
-        img = Image.open(os.path.join(self.data_path,img_path))
+        img_name ,img_path,_,comments,_ = self.data.iloc[idx]
+        img = os.path.join(self.data_path,img_path)
 
-        encoding = self.processor(
-            images=img,
-            text=comments,
-            padding="max_length",
-            return_tensors="pt",
-        )
-        # remove batch dimension
-        encoding = {k: v.squeeze() for k, v in encoding.items()}
-        eocoding = encoding.update({"img_name" : img_name})
-        return encoding
+        return {"img" : img, "text" : comments, "img_name" : img_name}
