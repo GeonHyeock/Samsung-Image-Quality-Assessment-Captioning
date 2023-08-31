@@ -25,7 +25,10 @@ class CocaDataset(Dataset):
         img = cv2.imread(os.path.join(self.data_dir, img_path))
         img = self.transform(image=img)["image"]
 
-        if self.data_type == "valid":
+        if self.data_type == "train":
+            comments = comments + "[MASK]"
+
+        elif self.data_type == "valid":
             comments = img_name
 
         return {"img": img, "mos": mos, "text": comments}
@@ -33,12 +36,12 @@ class CocaDataset(Dataset):
 
 def trs_train():
     trs = [A.HorizontalFlip(), ToTensorV2()]
-    return A.Compose([A.Resize(320, 320), A.Normalize()] + trs, p=1)
+    return A.Compose([A.Resize(256, 256), A.Normalize()] + trs, p=1)
 
 
 def trs_valid():
     trs = [ToTensorV2()]
-    return A.Compose([A.Resize(320, 320), A.Normalize()] + trs, p=1)
+    return A.Compose([A.Resize(256, 256), A.Normalize()] + trs, p=1)
 
 
 if __name__ == "__main__":

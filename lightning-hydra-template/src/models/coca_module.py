@@ -22,7 +22,7 @@ class CocaModule(LightningModule):
         self.save_hyperparameters(logger=False)
 
         self.net = net
-        self.cls_token = torch.tensor(self.net.tokenizer("").input_ids[0])
+        self.cls_token = torch.tensor(self.net.tokenizer("[MASK]" * 50).input_ids)
 
         with open("../data/comments_dict.json", "r") as f:
             self.comments_dict = json.load(f)
@@ -94,7 +94,9 @@ class CocaModule(LightningModule):
         img = batch["img"]
         text = self.cls_token.repeat(img.shape[0], 1).to(self.device)
         logits = self.net(text=text, images=img)
-        predict = self.net.tokenizer.batch_decode(logits.argmax(-1))
+        predict = self.net.tokenizer.batch_decode(
+            logits.argmax(-1), skip_special_tokens=True
+        )
         target = list(map(lambda x: self.comments_dict[x], batch["text"]))
 
         self.bleu3(predict, target)
