@@ -3,10 +3,9 @@ import json
 import torch
 from lightning import LightningModule
 from torchmetrics import MaxMetric, MeanMetric
-from torchmetrics.text import BLEUScore
-from torchmetrics.text.rouge import ROUGEScore
-from nltk.translate.meteor_score import meteor_score
 from PIL import Image
+from pycocotools.coco import COCO
+from pycocoevalcap.eval import COCOEvalCap
 import numpy as np
 import os
 
@@ -28,29 +27,17 @@ class BlipModule(LightningModule):
         self.net = model_dict["model"]
         self.processor = model_dict["processor"]
 
-        with open("../data/comments_dict.json", "r") as f:
-            self.comments_dict = json.load(f)
+        self.valid_coco = COCO("../data/valid.json")
 
         self.train_loss = MeanMetric()
-
-        self.cider = MeanMetric()
-        self.meteor = MeanMetric()
-        self.bleu4 = BLEUScore(n_gram=4)
-        self.bleu3 = BLEUScore(n_gram=3)
-        self.rouge = ROUGEScore(rouge_keys="rougeL")
-
-        self.compute_meteor = meteor_score
         self.score_best = MaxMetric()
+        self.result = []
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         pass
 
     def on_train_start(self) -> None:
-        self.bleu4.reset()
-        self.bleu3.reset()
-        self.rouge.reset()
-        self.meteor.reset()
-        self.score_best.reset()
+        pass
 
     def model_step(self, batch):
         img = [Image.open(os.path.join(i)) for i in batch["img"]]
@@ -64,7 +51,7 @@ class BlipModule(LightningModule):
         )
         # remove batch dimension
         encoding = {k: v.to(self.device) for k, v in encoding.items()}
-        encoding.update({"img_name": batch["img_name"]})
+        encoding.update({"img_name": list(map(int, batch["img_id"]))})
         return encoding
 
     def training_step(self, batch):
@@ -111,37 +98,34 @@ class BlipModule(LightningModule):
         predict = batch.pop("pixel_values")
         predict = self.net.generate(pixel_values=predict, max_length=50)
         predict = self.processor.batch_decode(predict, skip_special_tokens=True)
-        target = [
+        self.result += [
             {"image_id": i, "caption": c} for i, c in zip(batch["img_name"], predict)
         ]
 
     def on_validation_epoch_end(self) -> None:
-        bleu3 = self.bleu3.compute()
-        bleu4 = self.bleu4.compute()
-        rouge = self.rouge.compute()
-        meteor = self.meteor.compute()
+        coco_result = self.valid_coco.loadRes(self.result)
+        coco_eval = COCOEvalCap(self.valid_coco, coco_result)
+        coco_eval.params["image_id"] = coco_result.getImgIds()
+        coco_eval.evaluate()
+
+        valid = {}
+        for metric, score in coco_eval.eval.items():
+            valid[f"val/{metric}"] = score
 
         # Score = CIDEr-D * 4 + METEOR * 3 + ((BLEU-4 + BLEU-3) / 2) * 2 + ROUGE-L * 1
-        score = meteor * 3 + bleu4 + bleu3 + rouge["rougeL_fmeasure"]
-        self.score_best(score)
-        self.log_dict(
-            {
-                "val/score": score,
-                "val/best_score": self.score_best.compute(),
-                "val/meteor": meteor,
-                "val/belu3": bleu3,
-                "val/belu4": bleu4,
-                "val/rouge": rouge["rougeL_fmeasure"],
-            },
-            sync_dist=True,
-            prog_bar=True,
+        score = (
+            valid["val/CIDEr"] * 4
+            + valid["val/METEOR"] * 3
+            + valid["val/Bleu_4"]
+            + valid["val/Bleu_3"]
+            + valid["val/ROUGE_L"]
         )
 
-        self.bleu4.reset()
-        self.bleu3.reset()
-        self.rouge.reset()
-        self.meteor.reset()
-        self.score_best.reset()
+        self.score_best(score)
+        valid.update({"val/score": score, "val/best_score": self.score_best.compute()})
+        self.log_dict(valid, sync_dist=True, prog_bar=True)
+
+        self.result = []
 
     def test_step(
         self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int
