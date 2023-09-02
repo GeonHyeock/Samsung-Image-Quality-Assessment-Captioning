@@ -5,9 +5,11 @@ from lightning import LightningModule
 from torchmetrics import MaxMetric, MeanMetric
 from torchmetrics.text import BLEUScore
 from torchmetrics.text.rouge import ROUGEScore
-
+from nltk.translate.meteor_score import meteor_score
 from PIL import Image
+import numpy as np
 import os
+
 
 class BlipModule(LightningModule):
     def __init__(
@@ -31,22 +33,23 @@ class BlipModule(LightningModule):
 
         self.train_loss = MeanMetric()
 
-        self.cider = None
-        self.meteor = None
+        self.cider = MeanMetric()
+        self.meteor = MeanMetric()
         self.bleu4 = BLEUScore(n_gram=4)
         self.bleu3 = BLEUScore(n_gram=3)
         self.rouge = ROUGEScore(rouge_keys="rougeL")
 
+        self.compute_meteor = meteor_score
         self.score_best = MaxMetric()
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         pass
 
     def on_train_start(self) -> None:
-        self.net.train()
         self.bleu4.reset()
         self.bleu3.reset()
         self.rouge.reset()
+        self.meteor.reset()
         self.score_best.reset()
 
     def model_step(self, batch):
@@ -61,9 +64,8 @@ class BlipModule(LightningModule):
         )
         # remove batch dimension
         encoding = {k: v.to(self.device) for k, v in encoding.items()}
-        encoding.update({"img_name" : batch["img_name"]})
+        encoding.update({"img_name": batch["img_name"]})
         return encoding
-        
 
     def training_step(self, batch):
         batch = self.model_step(batch)
@@ -71,7 +73,10 @@ class BlipModule(LightningModule):
         pixel_values = batch.pop("pixel_values")
         attention_mask = batch.pop("attention_mask")
         outputs = self.net(
-            input_ids=input_ids, pixel_values=pixel_values, labels=input_ids, attention_mask=attention_mask
+            input_ids=input_ids,
+            pixel_values=pixel_values,
+            labels=input_ids,
+            attention_mask=attention_mask,
         )
         loss = outputs.loss
 
@@ -79,13 +84,13 @@ class BlipModule(LightningModule):
         self.log_dict(
             {
                 "train/loss": self.train_loss,
-                "train/lr" : self.trainer.optimizers[0].param_groups[0]["lr"]
+                "train/lr": self.trainer.optimizers[0].param_groups[0]["lr"],
             },
             on_step=True,
             on_epoch=False,
             prog_bar=True,
             batch_size=len(input_ids),
-            sync_dist=True
+            sync_dist=True,
         )
         return loss
 
@@ -106,38 +111,37 @@ class BlipModule(LightningModule):
         predict = batch.pop("pixel_values")
         predict = self.net.generate(pixel_values=predict, max_length=50)
         predict = self.processor.batch_decode(predict, skip_special_tokens=True)
-        target = list(map(lambda x: self.comments_dict[x], batch["img_name"]))
-
-        self.bleu3(predict, target)
-        self.bleu4(predict, target)
-        self.rouge(predict, target)
-
-        self.log_dict(
-            {
-                "val/bleu3": self.bleu3,
-                "val/bleu4": self.bleu4,
-                "val/rouge": self.rouge.rougeL_fmeasure[-1],
-            },
-            on_step=False,
-            on_epoch=True,
-            prog_bar=True,
-            batch_size=len(predict),
-            sync_dist=True
-        )
+        target = [
+            {"image_id": i, "caption": c} for i, c in zip(batch["img_name"], predict)
+        ]
 
     def on_validation_epoch_end(self) -> None:
         bleu3 = self.bleu3.compute()
         bleu4 = self.bleu4.compute()
         rouge = self.rouge.compute()
+        meteor = self.meteor.compute()
 
         # Score = CIDEr-D * 4 + METEOR * 3 + ((BLEU-4 + BLEU-3) / 2) * 2 + ROUGE-L * 1
-        score = bleu3 + bleu4 + rouge["rougeL_fmeasure"]
+        score = meteor * 3 + bleu4 + bleu3 + rouge["rougeL_fmeasure"]
         self.score_best(score)
         self.log_dict(
-            {"val/score": score, "val/best_score": self.score_best.compute()},
+            {
+                "val/score": score,
+                "val/best_score": self.score_best.compute(),
+                "val/meteor": meteor,
+                "val/belu3": bleu3,
+                "val/belu4": bleu4,
+                "val/rouge": rouge["rougeL_fmeasure"],
+            },
             sync_dist=True,
             prog_bar=True,
         )
+
+        self.bleu4.reset()
+        self.bleu3.reset()
+        self.rouge.reset()
+        self.meteor.reset()
+        self.score_best.reset()
 
     def test_step(
         self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int
