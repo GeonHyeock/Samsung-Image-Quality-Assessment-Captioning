@@ -9,3 +9,6 @@ vit-pytorch>=0.40.2
 
 # pip install git+https://github.com/huggingface/transformers.git@main
 # pip install 'git+https://github.com/katsura-jp/pytorch-cosine-annealing-with-warmup'
+# pycocotools
+# pycocoevalcap
+# sudo apt-get install openjdk-11-jdk
