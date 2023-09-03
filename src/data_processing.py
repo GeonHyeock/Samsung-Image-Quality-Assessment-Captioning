@@ -7,17 +7,23 @@ from PIL import Image
 
 def train_valid_split():
     data = pd.read_csv("data/train.csv")
-    data_value_count = data.img_name.value_counts()
-    train_img = data_value_count[data_value_count == 1].index
-    train_idx = np.where(np.isin(data.img_name, train_img) == True)[0]
-    valid_idx = np.array(list(set(range(len(data))) - set(train_idx)))
-    print(f"train : {len(train_idx)} valid : {len(valid_idx)}")
-    print(f"ratio = {len(train_idx) / len(data)}")
+    img_names = data.img_name.unique()
+    train_img = np.random.choice(img_names, int(len(img_names) * 0.8), replace=False)
+    valid_img = list(set(img_names) - set(train_img))
+    print(f"train : {len(train_img)} valid : {len(valid_img)}")
 
-    data["type"] = pd.Series()
-    data.loc[train_idx, "type"] = "train"
-    data.loc[valid_idx, "type"] = "valid"
-    data.to_csv("data/train.csv", index=False)
+    if "type" in data.columns:
+        data = data.drop("type", axis=1)
+
+    pd.merge(
+        data,
+        pd.DataFrame(
+            {
+                "img_name": list(train_img) + valid_img,
+                "type": ["train"] * len(train_img) + ["valid"] * len(valid_img),
+            }
+        ),
+    ).to_csv("data/train.csv", index=False)
 
 
 def make_coco_json(data_folder="data", make_type=["valid"]):
@@ -64,5 +70,5 @@ def make_coco_json(data_folder="data", make_type=["valid"]):
 
 if __name__ == "__main__":
     np.random.seed(42)
-    # train_valid_split()
+    train_valid_split()
     make_coco_json()
