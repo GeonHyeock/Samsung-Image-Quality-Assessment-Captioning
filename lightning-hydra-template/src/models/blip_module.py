@@ -7,6 +7,7 @@ from PIL import Image
 from pycocotools.coco import COCO
 from pycocoevalcap.eval import COCOEvalCap
 import numpy as np
+import pandas as pd
 import os
 
 
@@ -25,6 +26,7 @@ class BlipModule(LightningModule):
 
         self.net = net
         self.valid_coco = COCO("../data/valid.json")
+        self.test_result = {"img_name": [], "comments": []}
 
         self.train_loss = MeanMetric()
         self.score = MeanMetric()
@@ -114,7 +116,6 @@ class BlipModule(LightningModule):
         coco_eval.evaluate()
 
         valid = {}
-        # Score = CIDEr-D * 4 + METEOR * 3 + ((BLEU-4 + BLEU-3) / 2) * 2 + ROUGE-L * 1
         for metric, score in coco_eval.eval.items():
             valid[f"val/{metric}"] = score
             if metric in self.metric_weight.keys():
@@ -130,12 +131,27 @@ class BlipModule(LightningModule):
         self.result = []
         self.score.reset()
 
-    def test_step(self, batch):
-        pass
+    def test_step(self, batch, batch_idx):
+        image = [Image.open(os.path.join(i)) for i in batch["img"]]
+        inputs = self.net.processor(images=image, return_tensors="pt").to(self.device)
+        pixel_values = inputs.pixel_values
+        generated_ids = self.net.model.generate(
+            pixel_values=pixel_values, max_length=50
+        )
+        generated_caption = self.net.processor.batch_decode(
+            generated_ids, skip_special_tokens=True
+        )
+
+        self.test_result["img_name"] += batch["img"]
+        self.test_result["comments"] += generated_caption
 
     def on_test_epoch_end(self) -> None:
         """Lightning hook that is called when a test epoch ends."""
-        pass
+        f = lambda x: x.split("/")[-1].split(".")[0]
+        self.test_result["img_name"] = list(map(f, self.test_result["img_name"]))
+        result = pd.DataFrame(self.test_result)
+        test_csv = pd.read_csv("../data/test.csv")
+        pd.merge(test_csv, result).to_csv("../submission.csv", index=False)
 
     def configure_optimizers(self) -> Dict[str, Any]:
         """Configures optimizers and learning-rate schedulers to be used for training.
