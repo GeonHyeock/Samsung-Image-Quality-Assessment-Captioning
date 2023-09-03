@@ -26,8 +26,7 @@ class ImageCaptioningDataset(Dataset):
     def __getitem__(self, idx):
         d = dict(self.data.iloc[idx])
         img = os.path.join(self.data_path, d["img_path"])
-        return {
-            "img": img,
-            "text": d.get("comments", ""),
-            "img_id": d.get("image_id", -1),
-        }
+        if self.type == "test":
+            return {"img": img}
+        else:
+            return {"img": img, "text": d["comments"], "img_id": d["image_id"]}
