@@ -11,18 +11,18 @@ class BlipDataModule(LightningDataModule):
     def __init__(
         self,
         data_dir: str = "../data/",
-        processor: str = "",
         batch_size: int = 64,
         num_workers: int = 0,
         pin_memory: bool = False,
-        persistent_workers = False,
+        persistent_workers=False,
     ) -> None:
         super().__init__()
 
         self.save_hyperparameters(logger=False)
 
-        self.TrainDataset = ImageCaptioningDataset(data_dir,  processor, "train")
-        self.ValidDataset = ImageCaptioningDataset(data_dir,  processor, "valid")
+        self.TrainDataset = ImageCaptioningDataset(data_dir, "train")
+        self.ValidDataset = ImageCaptioningDataset(data_dir, "valid")
+        self.TestDataset = ImageCaptioningDataset(data_dir, "test")
 
     def prepare_data(self) -> None:
         pass
@@ -55,11 +55,18 @@ class BlipDataModule(LightningDataModule):
             num_workers=self.hparams.num_workers,
             pin_memory=self.hparams.pin_memory,
             shuffle=False,
-            persistent_workers=self.hparams.persistent_workers
+            persistent_workers=self.hparams.persistent_workers,
         )
 
     def test_dataloader(self) -> DataLoader[Any]:
-        pass
+        return DataLoader(
+            dataset=self.TestDataset,
+            batch_size=self.hparams.batch_size,
+            num_workers=self.hparams.num_workers,
+            pin_memory=self.hparams.pin_memory,
+            shuffle=False,
+            persistent_workers=self.hparams.persistent_workers,
+        )
 
     def teardown(self, stage: Optional[str] = None) -> None:
         """Lightning hook for cleaning up after `trainer.fit()`, `trainer.validate()`,
@@ -87,4 +94,4 @@ class BlipDataModule(LightningDataModule):
 
 
 if __name__ == "__main__":
-    _ = CocaDataModule()
+    pass
