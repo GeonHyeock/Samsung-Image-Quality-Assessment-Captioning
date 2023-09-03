@@ -23,14 +23,19 @@ class BlipModule(LightningModule):
         # also ensures init params will be stored in ckpt
         self.save_hyperparameters(logger=False)
 
-        model_dict = net.return_model()
-        self.net = model_dict["model"]
-        self.processor = model_dict["processor"]
-
+        self.net = net
         self.valid_coco = COCO("../data/valid.json")
 
         self.train_loss = MeanMetric()
+        self.score = MeanMetric()
         self.score_best = MaxMetric()
+        self.metric_weight = {
+            "CIDEr": 4,
+            "METEOR": 3,
+            "Bleu_4": 1,
+            "Bleu_3": 1,
+            "ROUGE_L": 1,
+        }
         self.result = []
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -43,7 +48,7 @@ class BlipModule(LightningModule):
         img = [Image.open(os.path.join(i)) for i in batch["img"]]
         text = batch["text"]
 
-        encoding = self.processor(
+        encoding = self.net.processor(
             images=img,
             text=text,
             padding="longest",
@@ -96,8 +101,8 @@ class BlipModule(LightningModule):
         """
         batch = self.model_step(batch)
         predict = batch.pop("pixel_values")
-        predict = self.net.generate(pixel_values=predict, max_length=50)
-        predict = self.processor.batch_decode(predict, skip_special_tokens=True)
+        predict = self.net.model.generate(pixel_values=predict, max_length=50)
+        predict = self.net.processor.batch_decode(predict, skip_special_tokens=True)
         self.result += [
             {"image_id": i, "caption": c} for i, c in zip(batch["img_name"], predict)
         ]
@@ -109,27 +114,23 @@ class BlipModule(LightningModule):
         coco_eval.evaluate()
 
         valid = {}
+        # Score = CIDEr-D * 4 + METEOR * 3 + ((BLEU-4 + BLEU-3) / 2) * 2 + ROUGE-L * 1
         for metric, score in coco_eval.eval.items():
             valid[f"val/{metric}"] = score
+            if metric in self.metric_weight.keys():
+                self.score.update(score * self.metric_weight[metric])
 
-        # Score = CIDEr-D * 4 + METEOR * 3 + ((BLEU-4 + BLEU-3) / 2) * 2 + ROUGE-L * 1
-        score = (
-            valid["val/CIDEr"] * 4
-            + valid["val/METEOR"] * 3
-            + valid["val/Bleu_4"]
-            + valid["val/Bleu_3"]
-            + valid["val/ROUGE_L"]
-        )
-
+        score = self.score.compute() / self.trainer.world_size
         self.score_best(score)
-        valid.update({"val/score": score, "val/best_score": self.score_best.compute()})
+
+        score_best = self.score_best.compute()
+        valid.update({"val/score": score, "val/best_score": score_best})
         self.log_dict(valid, sync_dist=True, prog_bar=True)
 
         self.result = []
+        self.score.reset()
 
-    def test_step(
-        self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int
-    ) -> None:
+    def test_step(self, batch):
         pass
 
     def on_test_epoch_end(self) -> None:
