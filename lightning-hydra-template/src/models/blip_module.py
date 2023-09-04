@@ -2,7 +2,7 @@ from typing import Any, Dict, Tuple
 import json
 import torch
 from lightning import LightningModule
-from torchmetrics import MaxMetric, MeanMetric
+from torchmetrics import MaxMetric, MeanMetric, SumMetric
 from PIL import Image
 from pycocotools.coco import COCO
 from pycocoevalcap.eval import COCOEvalCap
@@ -29,7 +29,7 @@ class BlipModule(LightningModule):
         self.test_result = {"img_name": [], "comments": []}
 
         self.train_loss = MeanMetric()
-        self.score = MeanMetric()
+        self.score = SumMetric()
         self.score_best = MaxMetric()
         self.metric_weight = {
             "CIDEr": 4,
@@ -151,7 +151,7 @@ class BlipModule(LightningModule):
         self.test_result["img_name"] = list(map(f, self.test_result["img_name"]))
         result = pd.DataFrame(self.test_result)
         test_csv = pd.read_csv("../data/test.csv")
-        pd.merge(test_csv, result).to_csv("../submission.csv", index=False)
+        pd.merge(test_csv, result).to_csv("../test_caption.csv", index=False)
 
     def configure_optimizers(self) -> Dict[str, Any]:
         """Configures optimizers and learning-rate schedulers to be used for training.
