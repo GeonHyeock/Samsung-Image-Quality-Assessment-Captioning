@@ -6,7 +6,7 @@ from PIL import Image
 
 
 def train_valid_split():
-    data = pd.read_csv("data/train.csv")
+    data = pd.read_csv("data/raw_train.csv")
     img_names = data.img_name.unique()
     train_img = np.random.choice(img_names, int(len(img_names) * 0.8), replace=False)
     valid_img = list(set(img_names) - set(train_img))
