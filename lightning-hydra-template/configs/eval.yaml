@@ -2,10 +2,10 @@
 
 defaults:
   - _self_
-  - data: mnist # choose datamodule with `test_dataloader()` for evaluation
-  - model: mnist
+  - data: blip # choose datamodule with `test_dataloader()` for evaluation
+  - model: blip
   - logger: null
-  - trainer: default
+  - trainer: gpu
   - paths: default
   - extras: default
   - hydra: default
@@ -15,4 +15,4 @@ task_name: "eval"
 tags: ["dev"]
 
 # passing checkpoint path is necessary for evaluation
-ckpt_path: ???
+ckpt_path: /home/user/captioning/lightning-hydra-template/logs/train/runs/2023-09-06_21-50-45/checkpoints/epoch_002.ckpt
