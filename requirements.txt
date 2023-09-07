@@ -12,3 +12,4 @@ vit-pytorch>=0.40.2
 # pycocotools
 # pycocoevalcap
 # sudo apt-get install openjdk-11-jdk
+# pip install streamlit
