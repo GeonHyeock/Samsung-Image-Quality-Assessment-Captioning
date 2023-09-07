@@ -21,19 +21,25 @@ class model(nn.Module):
 
         for name, childs in self.model.named_children():
             if name == "vision_model":
-                for param in childs.parameters():
-                    param.requires_grad = False
+                for n, param in childs.named_parameters():
+                    if ("layers.23.mlp" not in n) and ("post_layernorm" not in n):
+                        param.requires_grad = False
+                    else:
+                        print(f"train param : {n}")
 
             elif name == "text_decoder":
-                for param in childs.bert.parameters():
-                    param.requires_grad = False
+                for n, param in childs.bert.named_parameters():
+                    if ("crossattention" not in n) and ("encoder.layer.11" not in n):
+                        param.requires_grad = False
+                    else:
+                        print(f"train param : {n}")
 
     def forward(self, **x):
         return self.model(**x)
 
 
 if __name__ == "__main__":
-    net = model("Salesforce/blip-image-captioning-base")
+    net = model("Salesforce/blip-image-captioning-large")
     import torch
 
     a = torch.load(
