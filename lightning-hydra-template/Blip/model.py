@@ -1,4 +1,5 @@
 from transformers import AutoProcessor, BlipForConditionalGeneration
+from peft import inject_adapter_in_model, LoraConfig
 import torch.nn as nn
 
 
@@ -19,20 +20,24 @@ class model(nn.Module):
         self.model = BlipForConditionalGeneration.from_pretrained(pretrain)
         self.processor = AutoProcessor.from_pretrained(pretrain)
 
-        for name, childs in self.model.named_children():
-            if name == "vision_model":
-                for n, param in childs.named_parameters():
-                    if ("layers.23.mlp" not in n) and ("post_layernorm" not in n):
-                        param.requires_grad = False
-                    else:
-                        print(f"train param : {n}")
+        # for name, childs in self.model.named_children():
+        #     if name == "vision_model":
+        #         for n, param in childs.named_parameters():
+        #             if ("layers.23" not in n) and ("post_layernorm" not in n):
+        #                 param.requires_grad = False
+        #             else:
+        #                 print(f"train param : {n}")
 
-            elif name == "text_decoder":
-                for n, param in childs.bert.named_parameters():
-                    if ("crossattention" not in n) and ("encoder.layer.11" not in n):
-                        param.requires_grad = False
-                    else:
-                        print(f"train param : {n}")
+        #     elif name == "text_decoder":
+        #         for n, param in childs.named_parameters():
+        #             if (
+        #                 ("layer.11" not in n)
+        #                 and ("cls" not in n)
+        #                 and ("crossattention" not in n)
+        #             ):
+        #                 param.requires_grad = False
+        #             else:
+        #                 print(f"train param : {n}")
 
     def forward(self, **x):
         return self.model(**x)
