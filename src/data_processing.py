@@ -8,8 +8,9 @@ from PIL import Image
 def train_valid_split():
     data = pd.read_csv("data/raw_train.csv")
     img_names = data.img_name.unique()
-    train_img = np.random.choice(img_names, int(len(img_names) * 0.8), replace=False)
-    valid_img = list(set(img_names) - set(train_img))
+    val_img_name = data.img_name.value_counts()[data.img_name.value_counts() == 1].index
+    valid_img = np.random.choice(val_img_name, 15000, replace=False)
+    train_img = list(set(img_names) - set(valid_img))
     print(f"train : {len(train_img)} valid : {len(valid_img)}")
 
     if "type" in data.columns:
@@ -19,7 +20,7 @@ def train_valid_split():
         data,
         pd.DataFrame(
             {
-                "img_name": list(train_img) + valid_img,
+                "img_name": train_img + list(valid_img),
                 "type": ["train"] * len(train_img) + ["valid"] * len(valid_img),
             }
         ),
