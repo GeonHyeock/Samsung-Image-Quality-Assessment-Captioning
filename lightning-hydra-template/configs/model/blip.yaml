@@ -1,22 +1,22 @@
 _target_: src.models.blip_module.BlipModule
 
 optimizer:
-  _target_: torch.optim.Adam
+  _target_: torch.optim.AdamW
   _partial_: true
   lr: 0.000001
-  weight_decay: 0.0
+  weight_decay: 0.05
 
 scheduler:
   _target_: cosine_annealing_warmup.CosineAnnealingWarmupRestarts
   _partial_: true
-  first_cycle_steps: 3e+5
+  first_cycle_steps: 9e+3
   cycle_mult: 1.0
   max_lr: 1e-5
-  min_lr: 1e-10
-  warmup_steps: 1e+5
-  gamma: 0.5
+  min_lr: 1e-8
+  warmup_steps: 3e+3
+  gamma: 0.75
 
 net:
   _target_: Blip.model.model
-  pretrain: "Salesforce/blip-image-captioning-base"
+  pretrain: "Salesforce/blip-image-captioning-large"
   
