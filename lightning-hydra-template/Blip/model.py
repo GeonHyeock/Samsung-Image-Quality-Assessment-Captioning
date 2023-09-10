@@ -20,24 +20,24 @@ class model(nn.Module):
         self.model = BlipForConditionalGeneration.from_pretrained(pretrain)
         self.processor = AutoProcessor.from_pretrained(pretrain)
 
-        # for name, childs in self.model.named_children():
-        #     if name == "vision_model":
-        #         for n, param in childs.named_parameters():
-        #             if ("layers.23" not in n) and ("post_layernorm" not in n):
-        #                 param.requires_grad = False
-        #             else:
-        #                 print(f"train param : {n}")
+        lora_target = [
+            f"{name}"
+            for name, module in self.model.named_modules()
+            if isinstance(module, nn.Linear) or isinstance(module, nn.Conv1d)
+        ] + ["language_projection"]
 
-        #     elif name == "text_decoder":
-        #         for n, param in childs.named_parameters():
-        #             if (
-        #                 ("layer.11" not in n)
-        #                 and ("cls" not in n)
-        #                 and ("crossattention" not in n)
-        #             ):
-        #                 param.requires_grad = False
-        #             else:
-        #                 print(f"train param : {n}")
+        lora_config = LoraConfig(
+            lora_alpha=16,
+            lora_dropout=0.2,
+            r=64,
+            bias="lora_only",
+            target_modules=lora_target,
+        )
+        self.model = inject_adapter_in_model(lora_config, self.model)
+
+        for i, v in self.model.named_parameters():
+            if v.requires_grad == True:
+                print(i)
 
     def forward(self, **x):
         return self.model(**x)
@@ -45,9 +45,4 @@ class model(nn.Module):
 
 if __name__ == "__main__":
     net = model("Salesforce/blip-image-captioning-large")
-    import torch
-
-    a = torch.load(
-        "/home/user/captioning/lightning-hydra-template/logs/train/runs/2023-09-03_12-45-16/checkpoints/epoch_000.ckpt"
-    )
     pass
