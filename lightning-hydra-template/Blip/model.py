@@ -7,19 +7,8 @@ import torch
 
 class model(nn.Module):
     def __init__(self, pretrain):
-        """
-        text_decoder:
-            bert:
-                embeddings
-                    embeddings
-                    encoder
-            cls:
-                prediction:
-                    transform
-                    decoder
-        """
         super(model, self).__init__()
-        self.model = Blip2Model.from_pretrained(pretrain, torch_dtype=torch.float16)
+        self.model = Blip2Model.from_pretrained(pretrain)
         self.processor = Blip2Processor.from_pretrained(pretrain)
 
         lora_target = [
