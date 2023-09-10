@@ -1,5 +1,5 @@
 from transformers import AutoProcessor, BlipForConditionalGeneration
-from transformers import Blip2Processor, Blip2Model
+from transformers import Blip2Processor, Blip2ForConditionalGeneration
 from peft import inject_adapter_in_model, LoraConfig
 import torch.nn as nn
 import torch
@@ -8,7 +8,7 @@ import torch
 class model(nn.Module):
     def __init__(self, pretrain):
         super(model, self).__init__()
-        self.model = Blip2Model.from_pretrained(pretrain)
+        self.model = Blip2ForConditionalGeneration.from_pretrained(pretrain)
         self.processor = Blip2Processor.from_pretrained(pretrain)
 
         lora_target = [
