@@ -21,15 +21,15 @@ class model(nn.Module):
         self.processor = AutoProcessor.from_pretrained(pretrain)
 
         lora_target = [
-            f"{name}"
-            for name, module in self.model.named_modules()
-            if isinstance(module, nn.Linear) or isinstance(module, nn.Conv1d)
-        ] + ["language_projection"]
+            f"vision_model.{name}"
+            for name, module in self.model.vision_model.named_modules()
+            if (isinstance(module, nn.Linear) or isinstance(module, nn.Conv1d))
+        ]
 
         lora_config = LoraConfig(
             lora_alpha=16,
             lora_dropout=0.2,
-            r=64,
+            r=32,
             bias="lora_only",
             target_modules=lora_target,
         )
