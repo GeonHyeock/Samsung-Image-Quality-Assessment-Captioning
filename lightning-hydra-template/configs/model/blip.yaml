@@ -18,5 +18,5 @@ scheduler:
 
 net:
   _target_: Blip.model.model
-  pretrain: "Salesforce/blip-image-captioning-large"
+  pretrain: "Salesforce/blip2-opt-2.7b"
   

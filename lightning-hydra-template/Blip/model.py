@@ -1,6 +1,8 @@
 from transformers import AutoProcessor, BlipForConditionalGeneration
+from transformers import Blip2Processor, Blip2Model
 from peft import inject_adapter_in_model, LoraConfig
 import torch.nn as nn
+import torch
 
 
 class model(nn.Module):
@@ -17,8 +19,8 @@ class model(nn.Module):
                     decoder
         """
         super(model, self).__init__()
-        self.model = BlipForConditionalGeneration.from_pretrained(pretrain)
-        self.processor = AutoProcessor.from_pretrained(pretrain)
+        self.model = Blip2Model.from_pretrained(pretrain, torch_dtype=torch.float16)
+        self.processor = Blip2Processor.from_pretrained(pretrain)
 
         # for name, childs in self.model.named_children():
         #     if name == "vision_model":
@@ -45,7 +47,6 @@ class model(nn.Module):
 
 if __name__ == "__main__":
     net = model("Salesforce/blip-image-captioning-large")
-    import torch
 
     a = torch.load(
         "/home/user/captioning/lightning-hydra-template/logs/train/runs/2023-09-03_12-45-16/checkpoints/epoch_000.ckpt"
