@@ -11,26 +11,23 @@ class model(nn.Module):
         self.model = Blip2ForConditionalGeneration.from_pretrained(pretrain)
         self.processor = Blip2Processor.from_pretrained(pretrain)
 
-        for p in self.model.vision_model.parameters():
-            p.requires_grad = False
+        lora_target = [
+            f"language_model.{name}"
+            for name, module in self.model.language_model.named_modules()
+            if isinstance(module, nn.Linear) or isinstance(module, nn.Conv1d)
+        ] + ["language_projection"]
 
-        for p in self.model.language_model.parameters():
-            p.requires_grad = False
+        lora_config = LoraConfig(
+            lora_alpha=16,
+            lora_dropout=0.2,
+            r=64,
+            bias="lora_only",
+            target_modules=lora_target,
+        )
+        self.model = inject_adapter_in_model(lora_config, self.model)
 
-        # lora_target = [
-        #     f"qformer.{name}"
-        #     for name, module in self.model.qformer.named_modules()
-        #     if isinstance(module, nn.Linear)
-        # ] + ["language_projection"]
-
-        # lora_config = LoraConfig(
-        #     lora_alpha=16,
-        #     lora_dropout=0.2,
-        #     r=64,
-        #     bias="lora_only",
-        #     target_modules=lora_target,
-        # )
-        # self.model = inject_adapter_in_model(lora_config, self.model)
+        for p in self.model.qformer.parameters():
+            p.requires_grad = True
 
         for i, v in self.model.named_parameters():
             if v.requires_grad == True:
