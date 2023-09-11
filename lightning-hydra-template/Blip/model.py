@@ -15,7 +15,7 @@ class model(nn.Module):
             f"language_model.{name}"
             for name, module in self.model.language_model.named_modules()
             if isinstance(module, nn.Linear) or isinstance(module, nn.Conv1d)
-        ] + ["language_projection"]
+        ]
 
         lora_config = LoraConfig(
             lora_alpha=16,
@@ -27,6 +27,9 @@ class model(nn.Module):
         self.model = inject_adapter_in_model(lora_config, self.model)
 
         for p in self.model.qformer.parameters():
+            p.requires_grad = True
+
+        for p in self.model.language_projection.parameters():
             p.requires_grad = True
 
         for i, v in self.model.named_parameters():
