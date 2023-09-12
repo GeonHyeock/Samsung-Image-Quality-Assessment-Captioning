@@ -12,7 +12,7 @@ class model(nn.Module):
 
         lora_target = [
             f"language_model.{name}"
-            for name, module in model.language_model.named_modules()
+            for name, module in self.model.language_model.named_modules()
             if ((isinstance(module, nn.Linear) or isinstance(module, nn.Conv1d)))
             and any([m in name for m in lora_module])
             and not any([m in name for m in train_module])
