@@ -104,7 +104,11 @@ class BlipModule(LightningModule):
         batch = self.model_step(batch)
         predict = batch.pop("pixel_values")
         predict = self.net.model.generate(
-            pixel_values=predict, max_length=50, do_sample=True, top_k=7
+            pixel_values=predict,
+            max_length=50,
+            do_sample=True,
+            top_k=10,
+            top_p=0.9,
         )
         predict = self.net.processor.batch_decode(predict, skip_special_tokens=True)
         self.result += [
@@ -138,7 +142,11 @@ class BlipModule(LightningModule):
         inputs = self.net.processor(images=image, return_tensors="pt").to(self.device)
         pixel_values = inputs.pixel_values
         generated_ids = self.net.model.generate(
-            pixel_values=pixel_values, max_length=50, do_sample=True, top_k=7
+            pixel_values=pixel_values,
+            max_length=50,
+            do_sample=True,
+            top_k=10,
+            top_p=0.9,
         )
         generated_caption = self.net.processor.batch_decode(
             generated_ids, skip_special_tokens=True
