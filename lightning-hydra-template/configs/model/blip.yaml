@@ -19,4 +19,6 @@ scheduler:
 net:
   _target_: Blip.model.model
   pretrain: "Salesforce/blip2-opt-2.7b"
+  train_module: [qformer]
+  lora_module: [v_proj, q_proj]
   
