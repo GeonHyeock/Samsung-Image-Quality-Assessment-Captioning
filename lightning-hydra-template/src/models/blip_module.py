@@ -136,7 +136,7 @@ class BlipModule(LightningModule):
         inputs = self.net.processor(images=image, return_tensors="pt").to(self.device)
         pixel_values = inputs.pixel_values
         generated_ids = self.net.model.generate(
-            pixel_values=pixel_values, max_length=50
+            pixel_values=pixel_values, max_length=50, do_sample=True, top_k=7
         )
         generated_caption = self.net.processor.batch_decode(
             generated_ids, skip_special_tokens=True
