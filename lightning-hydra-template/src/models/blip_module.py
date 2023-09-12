@@ -17,12 +17,17 @@ class BlipModule(LightningModule):
         net: torch.nn.Module,
         optimizer: torch.optim.Optimizer,
         scheduler: torch.optim.lr_scheduler,
+        top_k,
+        top_p,
     ) -> None:
         super().__init__()
 
         # this line allows to access init params with 'self.hparams' attribute
         # also ensures init params will be stored in ckpt
         self.save_hyperparameters(logger=False)
+
+        self.top_k = top_k
+        self.top_p = top_p
 
         self.net = net
         self.valid_coco = COCO("../data/valid.json")
@@ -107,8 +112,8 @@ class BlipModule(LightningModule):
             pixel_values=predict,
             max_length=50,
             do_sample=True,
-            top_k=10,
-            top_p=0.9,
+            top_k=self.top_k,
+            top_p=self.top_p,
         )
         predict = self.net.processor.batch_decode(predict, skip_special_tokens=True)
         self.result += [
@@ -145,8 +150,8 @@ class BlipModule(LightningModule):
             pixel_values=pixel_values,
             max_length=50,
             do_sample=True,
-            top_k=10,
-            top_p=0.9,
+            top_k=self.top_k,
+            top_p=self.top_p,
         )
         generated_caption = self.net.processor.batch_decode(
             generated_ids, skip_special_tokens=True
