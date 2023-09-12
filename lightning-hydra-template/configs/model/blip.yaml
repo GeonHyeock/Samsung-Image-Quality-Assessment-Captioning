@@ -9,14 +9,16 @@ optimizer:
 scheduler:
   _target_: cosine_annealing_warmup.CosineAnnealingWarmupRestarts
   _partial_: true
-  first_cycle_steps: 6e+3
+  first_cycle_steps: 8e+3
   cycle_mult: 1.0
   max_lr: 1e-5
   min_lr: 1e-8
-  warmup_steps: 1e+3
+  warmup_steps: 2e+3
   gamma: 0.75
 
 net:
   _target_: Blip.model.model
   pretrain: "Salesforce/blip-image-captioning-large"
+  train_module: ["crossattention", "vision_model.encoder.layers.23", "post_layernorm",text_decoder.cls]
+  lora_module: ["text_decoder"]
   

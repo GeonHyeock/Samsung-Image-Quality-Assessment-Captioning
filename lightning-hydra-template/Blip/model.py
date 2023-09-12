@@ -4,7 +4,7 @@ import torch.nn as nn
 
 
 class model(nn.Module):
-    def __init__(self, pretrain):
+    def __init__(self, pretrain, train_module, lora_module):
         """
         text_decoder:
             bert:
@@ -21,9 +21,11 @@ class model(nn.Module):
         self.processor = AutoProcessor.from_pretrained(pretrain)
 
         lora_target = [
-            f"text_decoder.{name}"
-            for name, module in self.model.text_decoder.named_modules()
-            if (isinstance(module, nn.Linear) or isinstance(module, nn.Conv1d))
+            name
+            for name, module in self.model.named_modules()
+            if ((isinstance(module, nn.Linear) or isinstance(module, nn.Conv1d)))
+            and any([m in name for m in lora_module])
+            and not any([m in name for m in train_module])
         ]
 
         lora_config = LoraConfig(
@@ -35,14 +37,28 @@ class model(nn.Module):
         )
         self.model = inject_adapter_in_model(lora_config, self.model)
 
-        for i, v in self.model.named_parameters():
-            if v.requires_grad == True:
-                print(i)
+        for name, param in self.model.named_parameters():
+            if any([m in name for m in train_module]):
+                param.requires_grad = True
+
+        for name, param in self.model.named_parameters():
+            if param.requires_grad == True:
+                print(name)
 
     def forward(self, **x):
         return self.model(**x)
 
 
 if __name__ == "__main__":
-    net = model("Salesforce/blip-image-captioning-large")
+    net = model(
+        "Salesforce/blip-image-captioning-large",
+        [
+            "crossattention",
+            "vision_model.encoder.layers.23",
+            "post_layernorm",
+            "text_decoder.cls",
+        ],
+        ["text_decoder"],
+    )
+
     pass
