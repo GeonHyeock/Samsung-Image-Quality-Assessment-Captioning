@@ -31,7 +31,7 @@ class model(nn.Module):
         lora_config = LoraConfig(
             lora_alpha=16,
             lora_dropout=0.2,
-            r=64,
+            r=128,
             bias="lora_only",
             target_modules=lora_target,
         )
