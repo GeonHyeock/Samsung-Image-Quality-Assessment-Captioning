@@ -22,6 +22,6 @@ scheduler:
 net:
   _target_: Blip.model.model
   pretrain: "Salesforce/blip-image-captioning-large"
-  train_module: ["crossattention", "vision_model.encoder.layers.23", "post_layernorm",text_decoder.cls]
-  lora_module: ["text_decoder"]
+  train_module: ["crossattention", "vision_model.encoder.layers.23", "post_layernorm", "cls"]
+  lora_module: ["query", "value"]
   

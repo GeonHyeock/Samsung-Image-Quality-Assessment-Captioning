@@ -21,8 +21,8 @@ class model(nn.Module):
         self.processor = AutoProcessor.from_pretrained(pretrain)
 
         lora_target = [
-            name
-            for name, module in self.model.named_modules()
+            f"text_decoder.{name}"
+            for name, module in self.model.text_decoder.named_modules()
             if ((isinstance(module, nn.Linear) or isinstance(module, nn.Conv1d)))
             and any([m in name for m in lora_module])
             and not any([m in name for m in train_module])
@@ -52,13 +52,8 @@ class model(nn.Module):
 if __name__ == "__main__":
     net = model(
         "Salesforce/blip-image-captioning-large",
-        [
-            "crossattention",
-            "vision_model.encoder.layers.23",
-            "post_layernorm",
-            "text_decoder.cls",
-        ],
-        ["text_decoder"],
+        ["crossattention", "vision_model.encoder.layers.23", "post_layernorm", "cls"],
+        ["query", "value"],
     )
 
     pass
