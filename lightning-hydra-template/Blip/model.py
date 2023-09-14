@@ -20,26 +20,32 @@ class model(nn.Module):
         self.model = BlipForConditionalGeneration.from_pretrained(pretrain)
         self.processor = AutoProcessor.from_pretrained(pretrain)
 
-        lora_target = [
-            f"text_decoder.{name}"
-            for name, module in self.model.text_decoder.named_modules()
-            if ((isinstance(module, nn.Linear) or isinstance(module, nn.Conv1d)))
-            and any([m in name for m in lora_module])
-            and not any([m in name for m in train_module])
-        ]
+        if lora_module:
+            lora_target = [
+                name
+                for name, module in self.model.named_modules()
+                if ((isinstance(module, nn.Linear) or isinstance(module, nn.Conv1d)))
+                and any([m in name for m in lora_module])
+                and not any([m in name for m in train_module])
+            ]
 
-        lora_config = LoraConfig(
-            lora_alpha=16,
-            lora_dropout=0.2,
-            r=128,
-            bias="lora_only",
-            target_modules=lora_target,
-        )
-        self.model = inject_adapter_in_model(lora_config, self.model)
+            lora_config = LoraConfig(
+                lora_alpha=4,
+                lora_dropout=0.1,
+                r=16,
+                bias="lora_only",
+                target_modules=lora_target,
+            )
+            self.model = inject_adapter_in_model(lora_config, self.model)
 
-        for name, param in self.model.named_parameters():
-            if any([m in name for m in train_module]):
-                param.requires_grad = True
+            for name, param in self.model.named_parameters():
+                if any([m in name for m in train_module]):
+                    param.requires_grad = True
+
+        else:
+            for name, param in self.model.named_parameters():
+                if not any([m in name for m in train_module]):
+                    param.requires_grad = False
 
         for name, param in self.model.named_parameters():
             if param.requires_grad == True:
@@ -52,7 +58,7 @@ class model(nn.Module):
 if __name__ == "__main__":
     net = model(
         "Salesforce/blip-image-captioning-large",
-        ["crossattention", "vision_model.encoder.layers.23", "post_layernorm", "cls"],
+        ["crossattention", "vision_model.encoder.layers.23", "cls"],
         ["query", "value"],
     )
 
