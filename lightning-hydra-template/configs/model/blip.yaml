@@ -21,7 +21,7 @@ scheduler:
 
 net:
   _target_: Blip.model.model
-  pretrain: "microsoft/git-base"
-  train_module: ["visual_projection"]
-  lora_module: ["query", "value", "q_proj", "k_proj"]
+  pretrain: "microsoft/git-large-coco"
+  train_module: []
+  lora_module: []
   

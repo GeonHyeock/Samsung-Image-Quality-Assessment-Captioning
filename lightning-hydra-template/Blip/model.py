@@ -5,17 +5,6 @@ import torch.nn as nn
 
 class model(nn.Module):
     def __init__(self, pretrain, train_module, lora_module):
-        """
-        text_decoder:
-            bert:
-                embeddings
-                    embeddings
-                    encoder
-            cls:
-                prediction:
-                    transform
-                    decoder
-        """
         super(model, self).__init__()
         self.model = AutoModelForCausalLM.from_pretrained(pretrain)
         self.processor = AutoProcessor.from_pretrained(pretrain)
@@ -28,21 +17,22 @@ class model(nn.Module):
             and not any([m in name for m in train_module])
         ]
 
-        lora_config = LoraConfig(
-            lora_alpha=4,
-            lora_dropout=0.2,
-            r=32,
-            bias="lora_only",
-            target_modules=lora_target,
-        )
-        self.model = inject_adapter_in_model(lora_config, self.model)
+        if lora_target:
+            lora_config = LoraConfig(
+                lora_alpha=4,
+                lora_dropout=0.2,
+                r=32,
+                bias="lora_only",
+                target_modules=lora_target,
+            )
+            self.model = inject_adapter_in_model(lora_config, self.model)
 
-        for name, param in self.model.named_parameters():
-            if any([m in name for m in train_module]):
-                param.requires_grad = True
+            for name, param in self.model.named_parameters():
+                if any([m in name for m in train_module]):
+                    param.requires_grad = True
 
-        for p in self.model.output.parameters():
-            p.requires_grad = True
+            for p in self.model.output.parameters():
+                p.requires_grad = True
 
         for name, param in self.model.named_parameters():
             if param.requires_grad == True:
