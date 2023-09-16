@@ -61,9 +61,7 @@ class BlipModule(LightningModule):
             padding="longest",
             return_tensors="pt",
         )
-        # remove batch dimension
         encoding = {k: v.to(self.device) for k, v in encoding.items()}
-        encoding.update({"img_name": list(map(int, batch["img_id"]))})
         return encoding
 
     def valid_test_step(self, batch):
@@ -114,7 +112,8 @@ class BlipModule(LightningModule):
         predict = self.valid_test_step(batch)
 
         self.result += [
-            {"image_id": i, "caption": c} for i, c in zip(batch["img_name"], predict)
+            {"image_id": i, "caption": c}
+            for i, c in zip(list(map(int, batch["img_id"])), predict)
         ]
 
     def on_validation_epoch_end(self) -> None:
