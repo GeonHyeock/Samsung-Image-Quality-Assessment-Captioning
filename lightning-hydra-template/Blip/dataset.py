@@ -30,7 +30,7 @@ class ImageCaptioningDataset(Dataset):
         d = dict(self.data.iloc[idx])
         img = os.path.join(self.data_path, d["img_path"])
         if self.type in ["valid", "test"]:
-            return {"img": img}
+            return {"img": img, "img_id": d["image_id"]}
         else:
             b = random.choice([True, False])
             if b:
