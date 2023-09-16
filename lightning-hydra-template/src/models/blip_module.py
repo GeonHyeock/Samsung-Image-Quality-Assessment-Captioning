@@ -66,6 +66,17 @@ class BlipModule(LightningModule):
         encoding.update({"img_name": list(map(int, batch["img_id"]))})
         return encoding
 
+    def valid_test_step(self, batch):
+        image = [Image.open(os.path.join(i)) for i in batch["img"]]
+        inputs = self.net.processor(images=image, return_tensors="pt").to(self.device)
+        pixel_values = inputs.pixel_values
+        predict = self.net.model.generate(
+            pixel_values=pixel_values,
+            max_length=50,
+        )
+        predict = self.net.processor.batch_decode(predict, skip_special_tokens=True)
+        return predict
+
     def training_step(self, batch):
         batch = self.model_step(batch)
         input_ids = batch.pop("input_ids")
@@ -100,19 +111,8 @@ class BlipModule(LightningModule):
     def validation_step(
         self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int
     ) -> None:
-        """Perform a single validation step on a batch of data from the validation set.
+        predict = self.valid_test_step(batch)
 
-        :param batch: A batch of data (a tuple) containing the input tensor of images and target
-            labels.
-        :param batch_idx: The index of the current batch.
-        """
-        batch = self.model_step(batch)
-        predict = batch.pop("pixel_values")
-        predict = self.net.model.generate(
-            pixel_values=predict,
-            max_length=50,
-        )
-        predict = self.net.processor.batch_decode(predict, skip_special_tokens=True)
         self.result += [
             {"image_id": i, "caption": c} for i, c in zip(batch["img_name"], predict)
         ]
@@ -140,19 +140,10 @@ class BlipModule(LightningModule):
         self.score.reset()
 
     def test_step(self, batch, batch_idx):
-        image = [Image.open(os.path.join(i)) for i in batch["img"]]
-        inputs = self.net.processor(images=image, return_tensors="pt").to(self.device)
-        pixel_values = inputs.pixel_values
-        generated_ids = self.net.model.generate(
-            pixel_values=pixel_values,
-            max_length=50,
-        )
-        generated_caption = self.net.processor.batch_decode(
-            generated_ids, skip_special_tokens=True
-        )
+        predict = self.valid_test_step(batch)
 
         self.test_result["img_name"] += batch["img"]
-        self.test_result["comments"] += generated_caption
+        self.test_result["comments"] += predict
 
     def on_test_epoch_end(self) -> None:
         """Lightning hook that is called when a test epoch ends."""
