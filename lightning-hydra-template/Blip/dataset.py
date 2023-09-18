@@ -9,7 +9,7 @@ class ImageCaptioningDataset(Dataset):
     def __init__(self, data, data_type):
         self.data_path = data
         self.type = data_type
-        # self.aug = naw.RandomWordAug(action="crop")
+        # self.aug = naw.RandomWordAug(action="swap")
         if data_type == "test":
             csv_path = os.path.join(data, "test.csv")
             self.data = pd.read_csv(csv_path)
@@ -29,10 +29,13 @@ class ImageCaptioningDataset(Dataset):
     def __getitem__(self, idx):
         d = dict(self.data.iloc[idx])
         img = os.path.join(self.data_path, d["img_path"])
-        if self.type in ["valid", "test"]:
-            return {"img": img, "img_id": d["image_id"]}
-        else:
+
+        if self.type == "train":
             # b = random.choice([True, False])
             # if b:
             #     d["comments"] = self.aug.augment(d["comments"])[0]
             return {"img": img, "text": d["comments"], "img_id": d["image_id"]}
+        elif self.type == "valid":
+            return {"img": img, "img_id": d["image_id"]}
+        elif self.type == "test":
+            return {"img": img}
