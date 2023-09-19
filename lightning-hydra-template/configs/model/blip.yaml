@@ -4,8 +4,9 @@ top_k: 50
 top_p: 1.0
 
 optimizer:
-  _target_: torch.optim.AdamW
+  _target_: torch.optim.SGD
   _partial_: true
+  momentum: 0.9
   lr: 0.000001
   weight_decay: 0.05
 
