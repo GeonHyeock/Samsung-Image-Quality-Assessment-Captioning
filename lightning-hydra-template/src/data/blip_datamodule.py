@@ -19,8 +19,8 @@ class BlipDataModule(LightningDataModule):
         super().__init__()
 
         self.save_hyperparameters(logger=False)
+        self.data_dir = data_dir
 
-        self.TrainDataset = ImageCaptioningDataset(data_dir, "train")
         self.ValidDataset = ImageCaptioningDataset(data_dir, "valid")
         self.TestDataset = ImageCaptioningDataset(data_dir, "test")
 
@@ -36,7 +36,7 @@ class BlipDataModule(LightningDataModule):
         :return: The train dataloader.
         """
         return DataLoader(
-            dataset=self.TrainDataset,
+            dataset=ImageCaptioningDataset(self.data_dir, "train"),
             batch_size=self.hparams.batch_size,
             num_workers=self.hparams.num_workers,
             pin_memory=self.hparams.pin_memory,
