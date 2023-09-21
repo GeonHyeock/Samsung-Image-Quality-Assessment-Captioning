@@ -19,19 +19,9 @@ class ImageCaptioningDataset(Dataset):
             self.data = data[data["type"] == data_type].reset_index(drop=True)
 
             if data_type == "train":
-                diffusion = self.data[
-                    self.data.img_name.apply(lambda x: "diffusion" in x)
-                ].sample(5968 + 4096)
-
-                self.data = pd.concat(
-                    [
-                        self.data[
-                            self.data.img_name.apply(lambda x: "diffusion" not in x)
-                        ],
-                        diffusion,
-                    ]
+                self.data = self.data.sample(
+                    int(len(self.data) * 0.9), weights="weight"
                 ).reset_index(drop=True)
-
             if data_type == "valid":
                 self.data = self.data.iloc[
                     self.data.img_name.drop_duplicates().index
