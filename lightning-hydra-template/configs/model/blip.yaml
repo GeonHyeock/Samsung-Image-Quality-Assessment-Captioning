@@ -22,8 +22,8 @@ scheduler:
 net:
   _target_: Blip.model.model
   pretrain: "Salesforce/blip-image-captioning-base"
-  train_module: ["crossattention", "text_decoder.cls"]
-  lora_module: [vision_model, attention.self.query, attention.self.value]
+  train_module: ["crossattention"]
+  lora_module: [vision_model, attention.self.query, attention.self.value,"text_decoder.cls"]
   
   
         

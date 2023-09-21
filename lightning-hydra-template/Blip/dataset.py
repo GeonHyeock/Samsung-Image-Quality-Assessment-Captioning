@@ -18,10 +18,10 @@ class ImageCaptioningDataset(Dataset):
             data = pd.read_csv(csv_path)
             self.data = data[data["type"] == data_type].reset_index(drop=True)
 
-            if data_type == "train":
-                self.data = self.data.sample(
-                    int(len(self.data) * 0.9), weights="weight"
-                ).reset_index(drop=True)
+            # if data_type == "train":
+            #     self.data = self.data.sample(
+            #         int(len(self.data) * 0.9), weights="weight"
+            #     ).reset_index(drop=True)
             if data_type == "valid":
                 self.data = self.data.iloc[
                     self.data.img_name.drop_duplicates().index
