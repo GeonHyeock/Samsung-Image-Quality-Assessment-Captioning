@@ -4,3 +4,5 @@ batch_size: 8
 num_workers: 4
 pin_memory: False
 persistent_workers: True
+
+train_name: train_weight

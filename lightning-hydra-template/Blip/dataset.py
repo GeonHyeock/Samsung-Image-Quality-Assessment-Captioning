@@ -6,7 +6,7 @@ import os
 
 
 class ImageCaptioningDataset(Dataset):
-    def __init__(self, data, data_type):
+    def __init__(self, data, data_type, train_name=""):
         self.data_path = data
         self.type = data_type
         if data_type == "test":
@@ -14,7 +14,7 @@ class ImageCaptioningDataset(Dataset):
             self.data = pd.read_csv(csv_path)
 
         else:
-            csv_path = os.path.join(data, "train.csv")
+            csv_path = os.path.join(data, f"{train_name}.csv")
             data = pd.read_csv(csv_path)
             self.data = data[data["type"] == data_type].reset_index(drop=True)
 
