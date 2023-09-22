@@ -71,6 +71,8 @@ class BlipModule(LightningModule):
         predict = self.net.model.generate(
             pixel_values=pixel_values,
             max_length=50,
+            num_beams=5,
+            no_repeat_ngram_size=2,
         )
         predict = self.net.processor.batch_decode(predict, skip_special_tokens=True)
         return predict
