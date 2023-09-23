@@ -17,17 +17,12 @@ class BlipModule(LightningModule):
         net: torch.nn.Module,
         optimizer: torch.optim.Optimizer,
         scheduler: torch.optim.lr_scheduler,
-        top_k,
-        top_p,
     ) -> None:
         super().__init__()
 
         # this line allows to access init params with 'self.hparams' attribute
         # also ensures init params will be stored in ckpt
         self.save_hyperparameters(logger=False)
-
-        self.top_k = top_k
-        self.top_p = top_p
 
         self.net = net
         self.valid_coco = COCO("../data/valid.json")

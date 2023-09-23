@@ -4,7 +4,7 @@ import torch.nn as nn
 
 
 class model(nn.Module):
-    def __init__(self, pretrain, train_module, lora_module):
+    def __init__(self, pretrain, train_module, lora_module, lora_r):
         """
         text_decoder:
             bert:
@@ -32,7 +32,7 @@ class model(nn.Module):
             lora_config = LoraConfig(
                 lora_alpha=4,
                 lora_dropout=0.1,
-                r=16,
+                r=lora_r,
                 bias="lora_only",
                 target_modules=lora_target,
             )
