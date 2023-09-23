@@ -1,8 +1,5 @@
 _target_: src.models.blip_module.BlipModule
 
-top_k: 50
-top_p: 1.0
-
 optimizer:
   _target_: torch.optim.AdamW
   _partial_: true
@@ -24,6 +21,7 @@ net:
   pretrain: "Salesforce/blip-image-captioning-base"
   train_module: ["crossattention", "text_decoder.cls"]
   lora_module: [vision_model, attention.self.query, attention.self.value]
+  lora_r: 16
   
   
         
