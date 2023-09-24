@@ -6,3 +6,4 @@ pin_memory: False
 persistent_workers: True
 
 train_name: train_weight
+use_diffusion: False
