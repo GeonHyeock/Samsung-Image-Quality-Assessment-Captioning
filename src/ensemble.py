@@ -1,59 +1,44 @@
 import pandas as pd
-import numpy as np
 from tqdm import tqdm
-from glob import glob
-from collections import Counter, defaultdict
+from collections import defaultdict
 
 
-def find_duplicate_ngrams(sentences, n):
-    ngrams = []
-    for sentence in sentences:
-        words = sentence.split()
-        for i in range(len(words) - n + 1):
-            ngram = " ".join(words[i : i + n])
-            ngrams.append(ngram)
-    ngram_counts = Counter(ngrams)
-    return ngram_counts
+def main(score_dict):
+    data = []
+    for path, score in score_dict.items():
+        d = pd.read_csv(path)
+        d["score"] = score
+        data.append(d)
+    data = pd.concat(data)
 
+    img_names, comment, mos = [], [], []
+    for img_name in tqdm(data.img_name.unique()):
+        d = data[data.img_name == img_name].loc[:, ["comments", "score"]]
 
-def make_weight(sentence, my_count):
-    sentence = sentence.replace(". ", ".").replace(".", ". ")
-    weight = 0
-    for n in [2, 3, 4]:
-        words = sentence.split()
-        for i in range(len(words) - n + 1):
-            ngram = " ".join(words[i : i + n])
-            weight += my_count.get(ngram, 0)
-    return weight / len(words)
+        result = defaultdict(int)
+        for idx in range(len(d)):
+            c, s = d.iloc[idx]
+            result[c] += s
+        img_names += [img_name]
+        comment += [max(result, key=result.get)]
+        mos += [-1]
 
-
-def make_my_count():
-    data = pd.read_csv("data/train.csv")
-    data.loc[:, "comments"] = data.comments.apply(
-        lambda x: x.replace(". ", ".").replace(".", ". ")
-    )
-    ngram_counts_2 = find_duplicate_ngrams(data.comments.unique(), 2)
-    ngram_counts_3 = find_duplicate_ngrams(data.comments.unique(), 3)
-    ngram_counts_4 = find_duplicate_ngrams(data.comments.unique(), 4)
-
-    my_count = {k: np.log2(v / 2) for k, v in ngram_counts_2.items()}
-    my_count.update({k: np.log2(v / 3) for k, v in ngram_counts_3.items()})
-    my_count.update({k: np.log2(v / 4) for k, v in ngram_counts_4.items()})
-
-    return my_count
+    return pd.DataFrame({"img_name": img_names, "comments": comment, "mos": mos})
 
 
 if __name__ == "__main__":
-    my_count = make_my_count()
-    data = pd.concat([pd.read_csv(i) for i in glob("ensemble_csv/*.csv")])
+    score_dict = {
+        "ensemble_csv/base_diffusion.csv": 1.276742618,
+        "ensemble_csv/base_diffusion_lora4.csv": 1.256808295,
+        "ensemble_csv/large_lora_4_diffusion.csv": 1.24555302,
+        # "ensemble_csv/base_diffusion_lora_8.csv": 1.234590897,
+        # "ensemble_csv/base - diffusion + text train.csv": 1.183253507,
+        # "ensemble_csv/large-diffusion-lora_4-train_text_decoder.csv": 1.153261951,
+        # "ensemble_csv/beamserch10.csv": 1.25,
+        # "ensemble_csv/beamserch.csv": 1.25,
+    }
 
-    for d in glob("ensemble_csv/*.csv"):
-        print(d)
+    df = main(score_dict)
+    df.to_csv("voting.csv", index=False)
 
-    result = defaultdict(list)
-    for img_name in tqdm(data.img_name.unique()):
-        result["img_name"] += [img_name]
-        comments = data[data.img_name == img_name].comments
-        comments_weight = [(x, make_weight(x, my_count)) for x in comments]
-        result["comments"] += [max(comments_weight, key=lambda x: x[1])[0]]
-    pd.DataFrame(result).to_csv("ensemble.csv", index=False)
+    pass
