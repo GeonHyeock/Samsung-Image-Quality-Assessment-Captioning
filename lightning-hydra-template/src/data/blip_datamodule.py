@@ -66,7 +66,7 @@ class BlipDataModule(LightningDataModule):
 
     def test_dataloader(self) -> DataLoader[Any]:
         return DataLoader(
-            dataset=self.TestDataset,
+            dataset=self.ValidDataset,
             batch_size=self.hparams.batch_size,
             num_workers=self.hparams.num_workers,
             pin_memory=self.hparams.pin_memory,

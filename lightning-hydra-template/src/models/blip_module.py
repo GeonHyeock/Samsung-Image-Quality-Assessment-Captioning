@@ -79,7 +79,7 @@ class BlipModule(LightningModule):
         "Lightning hook that is called when a training epoch ends."
         pass
 
-    def validation_step(
+    def test_step(
         self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int
     ) -> None:
         predict = self.valid_test_step(batch)
@@ -89,7 +89,7 @@ class BlipModule(LightningModule):
             for i, c in zip(list(map(int, batch["img_id"])), predict)
         ]
 
-    def on_validation_epoch_end(self) -> None:
+    def on_test_epoch_end(self) -> None:
         coco_result = self.valid_coco.loadRes(self.result)
         coco_eval = COCOEvalCap(self.valid_coco, coco_result)
         coco_eval.params["image_id"] = coco_result.getImgIds()
@@ -109,15 +109,16 @@ class BlipModule(LightningModule):
         self.log_dict(valid, sync_dist=True, prog_bar=True)
 
         self.result = []
+        print(score)
         self.score.reset()
 
-    def test_step(self, batch, batch_idx):
+    def validation_step(self, batch, batch_idx):
         predict = self.valid_test_step(batch)
 
         self.test_result["img_name"] += batch["img"]
         self.test_result["comments"] += predict
 
-    def on_test_epoch_end(self) -> None:
+    def on_validation_epoch_end(self) -> None:
         """Lightning hook that is called when a test epoch ends."""
         f = lambda x: x.split("/")[-1].split(".")[0]
         self.test_result["img_name"] = list(map(f, self.test_result["img_name"]))

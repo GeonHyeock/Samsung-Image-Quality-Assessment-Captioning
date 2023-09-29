@@ -19,3 +19,7 @@ peft==0.5.0
 
 # pip install seaborn
 # pip install typing-extensions --upgrade
+# pip install diffusers
+# pip install safetensors
+# pip install numpy requests nlpaug
+# pip install gensim
