@@ -73,31 +73,7 @@ class BlipModule(LightningModule):
         return predict
 
     def training_step(self, batch):
-        batch = self.model_step(batch)
-        input_ids = batch.pop("input_ids")
-        pixel_values = batch.pop("pixel_values")
-        attention_mask = batch.pop("attention_mask")
-        outputs = self.net(
-            input_ids=input_ids,
-            pixel_values=pixel_values,
-            labels=input_ids,
-            attention_mask=attention_mask,
-        )
-        loss = outputs.loss
-
-        self.train_loss(loss)
-        self.log_dict(
-            {
-                "train/loss": self.train_loss,
-                "train/lr": self.trainer.optimizers[0].param_groups[0]["lr"],
-            },
-            on_step=True,
-            on_epoch=False,
-            prog_bar=True,
-            batch_size=len(input_ids),
-            sync_dist=True,
-        )
-        return loss
+        pass
 
     def on_train_epoch_end(self) -> None:
         "Lightning hook that is called when a training epoch ends."
