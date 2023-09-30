@@ -38,6 +38,7 @@ if __name__ == "__main__":
         "ensemble_csv/large_lora4.csv": 1.247990337,
         "ensemble_csv/large_lora_4_diffusion.csv": 1.24555302,
         "ensemble_csv/base_diffusion_lora_8.csv": 1.234590897,
+        "ensemble_csv/base.csv": 1.259,
         # "ensemble_csv/base_fp16all.csv": 1.2036627085,
         # "ensemble_csv/base - diffusion + text train.csv": 1.183253507,
         # "ensemble_csv/large-diffusion-lora_4-train_text_decoder.csv": 1.153261951,
