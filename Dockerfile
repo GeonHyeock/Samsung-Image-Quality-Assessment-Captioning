@@ -52,7 +52,8 @@ WORKDIR /home/user/captioning
 
 RUN pip install --upgrade pip \
     && pip install -r ./lightning-hydra-template/requirements.txt \
-    && pip install -r ./requirements.txt
+    && pip install -r ./requirements.txt \
+    && pip install git+https://github.com/katsura-jp/pytorch-cosine-annealing-with-warmup
 
 RUN apt-get update \
     && apt-get -y install libgl1-mesa-glx \
