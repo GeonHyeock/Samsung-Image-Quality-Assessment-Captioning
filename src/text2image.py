@@ -7,6 +7,7 @@ import os
 import pandas as pd
 import torch
 import torch.nn as nn
+import argparse
 
 
 def createDirectory(directory):
@@ -26,13 +27,13 @@ def make_pipe(model_id="runwayml/stable-diffusion-v1-5"):
     return pipe
 
 
-def main():
+def main(args):
     train_data = pd.read_csv("data/train_weight.csv")
     img_id = train_data.image_id.max() + 1
 
     pipe = make_pipe()
     difussion_df = defaultdict(list)
-    for _ in tqdm(range(8000)):
+    for _ in tqdm(range(int(args.diffusion_N))):
         data = train_data.sample(8, weights="weight")
         comments = list(data["comments"].values)
         image = pipe(comments).images
@@ -68,6 +69,12 @@ if __name__ == "__main__":
     torch.random.manual_seed(seed)
 
     createDirectory("data/train/diffusion")
-    main()
-    # make_df()
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--diffusion_N", default=8000, help="Diffusion 이미지 개수 : 최대 N * 8"
+    )
+    args = parser.parse_args()
+
+    main(args)
+    make_df()
     pass
