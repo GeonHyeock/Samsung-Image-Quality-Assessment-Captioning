@@ -58,6 +58,6 @@ RUN pip install --upgrade pip \
 RUN apt-get update \
     && apt-get -y install libgl1-mesa-glx \
     && apt-get install libglib2.0-0 \
-    && sudo apt-get install openjdk-11-jdk
+    && apt-get install -y openjdk-11-jdk
 
 CMD [ "/bin/bash" ]
