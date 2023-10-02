@@ -6,6 +6,7 @@ from collections import defaultdict
 def main(score_dict):
     data = []
     for path, score in score_dict.items():
+        print(path)
         d = pd.read_csv(path)
         d["score"] = score
         data.append(d)
@@ -34,13 +35,18 @@ if __name__ == "__main__":
     score_dict = {
         "ensemble_csv/base_diffusion.csv": 1.276742618,
         "ensemble_csv/large_beamserch.csv": 1.273379889,
+        "ensemble_csv/base.csv": 1.259,
         "ensemble_csv/base_diffusion_lora4.csv": 1.256808295,
         "ensemble_csv/large_lora4.csv": 1.247990337,
+        "ensemble_csv/base_batch16.csv": 1.244067369,
         "ensemble_csv/large_lora_4_diffusion.csv": 1.24555302,
         "ensemble_csv/base_diffusion_lora_8.csv": 1.234590897,
-        "ensemble_csv/base.csv": 1.259,
+        "ensemble_csv/base_lora32.csv": 1.242,
+        "ensemble_csv/final_base.csv": 1.24
         # "ensemble_csv/base_fp16all.csv": 1.2036627085,
+        # "ensemble_csv/large.csv": 1.2,
         # "ensemble_csv/base - diffusion + text train.csv": 1.183253507,
+        # "ensemble_csv/large_diffusionv3_schduler.csv": 1.170363784,
         # "ensemble_csv/large-diffusion-lora_4-train_text_decoder.csv": 1.153261951,
     }
 
