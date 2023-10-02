@@ -11,9 +11,12 @@ def visual_img(d, img_name):
     data = d[d.img_name == img_name]
     img = Image.open(os.path.join("data", data.img_path.unique()[0]))
     st.image(img)
-    st.write(f"mos : {data.mos.unique()[0]}")
-    for idx, value in enumerate(data.comments):
-        st.write(f"comments {idx} : {value}")
+    if "mos" in data.columns:
+        st.write(f"mos : {data.mos.unique()[0]}")
+
+    if "comments" in data.columns:
+        for idx, value in enumerate(data.comments):
+            st.write(f"comments {idx} : {value}")
 
 
 def main():
@@ -21,15 +24,11 @@ def main():
 
     with st.sidebar:
         csv = st.selectbox("시각화 할 csv", glob.glob("data/*.csv"))
-        if csv == "data/test.csv":
-            result = st.selectbox("정답 csv", glob.glob("./*.csv"))
-            raw_data = pd.merge(pd.read_csv(csv), pd.read_csv(result))
-        else:
-            raw_data = pd.read_csv(csv)
+        
+        raw_data = pd.read_csv(csv)
         unique_img = raw_data.img_name.unique()
 
         img_name = st.selectbox("이미지 이름 선택", unique_img)
-        img_idx = np.where(unique_img == img_name)
 
         button = st.button("Random_choice", type="primary")
         if button:
