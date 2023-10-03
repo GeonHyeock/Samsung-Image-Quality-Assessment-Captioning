@@ -8,7 +8,7 @@
 ## Member🔥
 | [박주용](https://github.com/lliee1)| [허건혁](https://github.com/GeonHyeock) |
 | :-: | :-: |
-| <img src="https://avatars.githubusercontent.com/OZOOOOOH" width="100"> | <img src="https://avatars.githubusercontent.com/GeonHyeock" width="100"> |
+| <img src="https://avatars.githubusercontent.com/lliee1" width="100"> | <img src="https://avatars.githubusercontent.com/GeonHyeock" width="100"> |
 ***
 
 
@@ -36,6 +36,25 @@ Output : 자연어 기반 정성 평가 캡셔닝(Text output, 영어)
 
 1. [raw_data](https://dacon.io/competitions/official/236134/data)를 [data folder](data)에 저장 
 
+2. 환경설정 [docker file](Dockerfile) 실행 \
+docker file은 다음과 같은 설정으로 작성되어 있습니다. \
+GeForce RTX 3080 Ti : 2EA
+
+
+|||
+|:---:|:---:|
+|OS|Linux-5.11.0-43-generic-x86_64-with-glibc2.31|
+|CUDA|11.2.2|
+|CUDNN|8|
+
+
+~~~md
+docker build -t caption .
+docker run --gpus all --ipc=host -it {image} /bin/bash
+sh requirement.sh 
+~~~
+3. 명령문
+
 ~~~md
 # Data preprocessing
 mv data/train.csv data/raw_train.csv
@@ -55,11 +74,13 @@ python src/train.py {args}
 
 # Model Inference
 cd lightning-hydra-template
+git checkout feat/infer
 python src eval.py {agrs}
 ~~~
+args는 [config](lightning-hydra-template/configs)에서 설정할 수 있습니다.
+
 
 ---
-
 ### Score Ranking
 |Type|score|Rank|
 | :---: | :---: | :---: |
