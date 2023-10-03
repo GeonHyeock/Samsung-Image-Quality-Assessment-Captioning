@@ -67,17 +67,26 @@ python src/text2image.py --diffusion_N={int}
 streamlit run src/data_eda.py
 ~~~
 
+
 ~~~md
 # Model Train
 cd lightning-hydra-template
 python src/train.py {args}
 
-# Model Inference
+# Model Inference : test-caption.csv 생성
 cd lightning-hydra-template
 git checkout feat/infer
-python src eval.py {agrs}
+python src eval.py ckpt_path={ckpt} {agrs}
 ~~~
-args는 [config](lightning-hydra-template/configs)에서 설정할 수 있습니다.
+args는 [config](lightning-hydra-template/configs)에서 설정할 수 있습니다 : [args_example](Reproduct.lua)
+
+~~~md
+# gh-submission 생성
+python src/infer.py
+
+# voting.csv 생성
+python src/ensemble.py
+~~~
 
 
 ---
