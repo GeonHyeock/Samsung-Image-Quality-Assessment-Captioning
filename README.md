@@ -5,6 +5,13 @@
 - 종합 등수 : 6th
 - [화질 정량 평가 code]()
 
+## Member🔥
+| [박주용](https://github.com/lliee1)| [허건혁](https://github.com/GeonHyeock) |
+| :-: | :-: |
+| <img src="https://avatars.githubusercontent.com/OZOOOOOH" width="100"> | <img src="https://avatars.githubusercontent.com/GeonHyeock" width="100"> |
+***
+
+
 ## Index
 * [Competition imformation](#competition-imformation)
 * [Code reproduction](#code-reproduction)
@@ -35,7 +42,7 @@ mv data/train.csv data/raw_train.csv
 python src/data_processing.py 
 
 # Make Diffusion image
-python src/text2image.py
+python src/text2image.py --diffusion_N={int}
 
 # Data EDA
 streamlit run src/data_eda.py
