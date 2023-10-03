@@ -46,18 +46,9 @@ RUN micromamba create -qy -n base -f /app/conda-linux-64.lock \
  && micromamba shell init --shell=bash --prefix="$MAMBA_ROOT_PREFIX" \
  && micromamba clean -qya
 
+#docker build
 USER root
 COPY . /home/user/captioning
 WORKDIR /home/user/captioning
-
-RUN pip install --upgrade pip \
-    && pip install -r ./lightning-hydra-template/requirements.txt \
-    && pip install -r ./requirements.txt \
-    && pip install git+https://github.com/katsura-jp/pytorch-cosine-annealing-with-warmup
-
-RUN apt-get update \
-    && apt-get -y install libgl1-mesa-glx \
-    && apt-get install libglib2.0-0 \
-    && apt-get install -y openjdk-11-jdk
 
 CMD [ "/bin/bash" ]
