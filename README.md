@@ -88,3 +88,5 @@ args는 [config](lightning-hydra-template/configs)에서 설정할 수 있습니
 | Private | 0.8592 | 11 |
 ---
 
+
+### [Report](Report.pdf)
