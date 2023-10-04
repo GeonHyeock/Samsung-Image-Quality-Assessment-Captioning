@@ -36,23 +36,34 @@ Output : 자연어 기반 정성 평가 캡셔닝(Text output, 영어)
 
 1. [raw_data](https://dacon.io/competitions/official/236134/data)를 [data folder](data)에 저장 
 
-2. 환경설정 [docker file](Dockerfile) 실행 \
+---
+
+2. 환경설정\
+- [docker file](Dockerfile) OR [Conda]() 실행 \
 docker file은 다음과 같은 설정으로 작성되어 있습니다. \
 GeForce RTX 3080 Ti : 2EA
 
-
-|||
-|:---:|:---:|
-|OS|Linux-5.11.0-43-generic-x86_64-with-glibc2.31|
-|CUDA|11.2.2|
-|CUDNN|8|
-
+    |구분|env|
+    |:---:|:---:|
+    |OS|Linux-5.11.0-43-generic-x86_64-with-glibc2.31|
+    |CUDA|11.2.2|
+    |CUDNN|8|
 
 ~~~md
+# 1-1 use Dokcer
 docker build -t caption .
-docker run --gpus all --ipc=host -it {image} /bin/bash
-sh requirement.sh 
+docker run --gpus all --ipc=host -it caption /bin/bash
+
+# 1-2  use Conda
+conda create -n captioning python=3.10.9
 ~~~
+
+~~~md
+# 2 requirement install
+sh requirement.sh
+~~~
+
+# 
 3. 명령문
 
 ~~~md
@@ -61,7 +72,7 @@ mv data/train.csv data/raw_train.csv
 python src/data_processing.py 
 
 # Make Diffusion image
-python src/text2image.py --diffusion_N={int}
+python src/text2image.py --diffusion_N={int - default : 8000}
 
 # Data EDA
 streamlit run src/data_eda.py
