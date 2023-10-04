@@ -1,6 +1,4 @@
 from torch.utils.data import Dataset
-import nlpaug.augmenter.word as naw
-import random
 import pandas as pd
 import os
 
