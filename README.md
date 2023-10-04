@@ -89,13 +89,13 @@ cd lightning-hydra-template
 git checkout feat/infer
 python src eval.py ckpt_path={ckpt} {agrs}
 ~~~
-args는 [config](lightning-hydra-template/configs)에서 설정할 수 있습니다 : [args_example](Reproduct.lua)
+- args는 [config](lightning-hydra-template/configs)에서 설정할 수 있습니다 : [args_example](Reproduct.lua)
 
 ~~~md
 # gh-submission 생성
 python src/infer.py
 
-# voting.csv 생성
+# gh-submission 결과들로부터 voting.csv 생성
 python src/ensemble.py
 ~~~
 
