@@ -80,7 +80,7 @@ streamlit run src/data_eda.py
 
 
 ~~~md
-# Model Train
+# Model Train - ckpt 저장 경로 : lightning-hydra-template/logs 
 cd lightning-hydra-template
 python src/train.py {args}
 
