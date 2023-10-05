@@ -90,8 +90,7 @@ git checkout feat/infer
 python src eval.py ckpt_path={ckpt} {agrs}
 ~~~
 - args는 [config](lightning-hydra-template/configs)에서 설정할 수 있습니다 : [args_example](Reproduct.lua)
-- data.use_diffusion=true를 사용하기 위해서는 [Diffusion image](src/text2image.py)를 train size의 15%이상 생성해야함
- : 참조 : [Dataset](lightning-hydra-template/Blip/dataset.py)
+- data.use_diffusion=true를 사용하기 위해서는 [Diffusion image](src/text2image.py)를 train size의 15%이상 생성해야함 - 참조 : [Dataset](lightning-hydra-template/Blip/dataset.py)
 
 ~~~md
 # gh-submission 생성
